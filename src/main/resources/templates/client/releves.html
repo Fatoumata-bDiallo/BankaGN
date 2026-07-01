@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BankaGN - Relevés PDF</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: #f0f4f8; }
+        .sidebar {
+            width: 260px;
+            height: 100vh;
+            background: linear-gradient(180deg, #1a3c5e 0%, #0d2137 100%);
+            position: fixed;
+            top: 0; left: 0;
+            padding: 20px 0;
+            z-index: 100;
+            overflow-y: auto;
+        }
+        .sidebar .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar .logo span { color: #f0a500; }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.7);
+            padding: 8px 25px;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            color: white;
+            background: rgba(240,165,0,0.2);
+            border-left: 3px solid #f0a500;
+        }
+        .sidebar .nav-link i { width: 25px; margin-right: 10px; }
+        .main-content { margin-left: 260px; padding: 30px; }
+        .card { border: none; border-radius: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08); }
+        .btn-telecharger {
+            background: linear-gradient(135deg, #1a3c5e, #f0a500);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 20px 40px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-telecharger:hover {
+            transform: translateY(-3px);
+            color: white;
+            box-shadow: 0 10px 30px rgba(26,60,94,0.3);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">Banka<span>GN</span></div>
+    <nav class="mt-3">
+        <a href="/client/dashboard" class="nav-link">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a href="/client/comptes" class="nav-link">
+            <i class="bi bi-bank"></i> Mes Comptes
+        </a>
+        <a href="/client/transactions" class="nav-link">
+            <i class="bi bi-arrow-left-right"></i> Transactions
+        </a>
+        <a href="/client/cartes" class="nav-link">
+            <i class="bi bi-credit-card"></i> Mes Cartes
+        </a>
+        <a href="/client/prets" class="nav-link">
+            <i class="bi bi-cash-coin"></i> Prêts
+        </a>
+        <a href="/client/beneficiaires" class="nav-link">
+            <i class="bi bi-people"></i> Bénéficiaires
+        </a>
+        <a href="/client/releves" class="nav-link active">
+            <i class="bi bi-file-pdf"></i> Relevés PDF
+        </a>
+        <a href="/client/devises" class="nav-link">
+            <i class="bi bi-currency-exchange"></i> Devises
+        </a>
+        <a href="/client/notifications" class="nav-link">
+            <i class="bi bi-bell"></i> Notifications
+        </a>
+        <hr style="border-color: rgba(255,255,255,0.1);">
+        <a href="/auth/logout" class="nav-link text-danger"
+           style="position:sticky;bottom:0;background:#0d2137;">
+            <i class="bi bi-box-arrow-left"></i> Déconnexion
+        </a>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-8">
+            <div class="card p-5 text-center">
+                <i class="bi bi-file-earmark-pdf"
+                   style="font-size:5rem;color:#dc3545;"></i>
+                <h3 class="fw-bold mt-4" style="color:#1a3c5e;">
+                    Relevé Bancaire PDF
+                </h3>
+                <p class="text-muted mt-2 mb-4 fs-5">
+                    Téléchargez votre relevé complet avec toutes
+                    vos transactions, soldes et informations
+                    bancaires.
+                </p>
+
+                <div class="row g-3 mb-5">
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3"
+                             style="background:#e8f4fd;">
+                            <i class="bi bi-check-circle-fill
+                               text-primary fs-4"></i>
+                            <div class="fw-bold mt-2"
+                                 style="color:#1a3c5e;">
+                                Toutes transactions
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3"
+                             style="background:#e8f8e8;">
+                            <i class="bi bi-check-circle-fill
+                               text-success fs-4"></i>
+                            <div class="fw-bold mt-2"
+                                 style="color:#28a745;">
+                                Soldes actuels
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3"
+                             style="background:#fff3cd;">
+                            <i class="bi bi-check-circle-fill
+                               text-warning fs-4"></i>
+                            <div class="fw-bold mt-2"
+                                 style="color:#f0a500;">
+                                Infos client
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="/client/releves/telecharger"
+                   class="btn-telecharger">
+                    <i class="bi bi-download me-2"></i>
+                    Télécharger mon relevé PDF
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

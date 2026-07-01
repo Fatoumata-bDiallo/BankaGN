@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BankaGN - Conversion Devises</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: #f0f4f8; }
+        .sidebar {
+            width: 260px;
+            height: 100vh;
+            background: linear-gradient(180deg, #1a3c5e 0%, #0d2137 100%);
+            position: fixed;
+            top: 0; left: 0;
+            padding: 20px 0;
+            z-index: 100;
+            overflow-y: auto;
+        }
+        .sidebar .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar .logo span { color: #f0a500; }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.7);
+            padding: 8px 25px;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            color: white;
+            background: rgba(240,165,0,0.2);
+            border-left: 3px solid #f0a500;
+        }
+        .sidebar .nav-link i { width: 25px; margin-right: 10px; }
+        .main-content { margin-left: 260px; padding: 30px; }
+        .card { border: none; border-radius: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08); }
+        .form-control, .form-select {
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            padding: 12px 15px;
+            font-size: 1rem;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #1a3c5e;
+            box-shadow: none;
+        }
+        .btn-convertir {
+            background: linear-gradient(135deg, #1a3c5e, #f0a500);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 15px;
+            font-weight: 700;
+            font-size: 1.05rem;
+            transition: all 0.3s;
+        }
+        .btn-convertir:hover {
+            transform: translateY(-2px);
+            color: white;
+        }
+        .resultat-card {
+            background: linear-gradient(135deg, #1a3c5e, #2d6a9f);
+            border-radius: 20px;
+            padding: 30px;
+            color: white;
+            text-align: center;
+        }
+        .taux-card {
+            background: white;
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        .taux-card:hover { transform: translateX(5px); }
+        .devise-flag {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">Banka<span>GN</span></div>
+    <nav class="mt-3">
+        <a href="/client/dashboard" class="nav-link">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a href="/client/comptes" class="nav-link">
+            <i class="bi bi-bank"></i> Mes Comptes
+        </a>
+        <a href="/client/transactions" class="nav-link">
+            <i class="bi bi-arrow-left-right"></i> Transactions
+        </a>
+        <a href="/client/cartes" class="nav-link">
+            <i class="bi bi-credit-card"></i> Mes Cartes
+        </a>
+        <a href="/client/prets" class="nav-link">
+            <i class="bi bi-cash-coin"></i> Prêts
+        </a>
+        <a href="/client/beneficiaires" class="nav-link">
+            <i class="bi bi-people"></i> Bénéficiaires
+        </a>
+        <a href="/client/releves" class="nav-link">
+            <i class="bi bi-file-pdf"></i> Relevés PDF
+        </a>
+        <a href="/client/devises" class="nav-link active">
+            <i class="bi bi-currency-exchange"></i> Devises
+        </a>
+        <a href="/client/notifications" class="nav-link">
+            <i class="bi bi-bell"></i> Notifications
+        </a>
+        <hr style="border-color: rgba(255,255,255,0.1);">
+        <a href="/auth/logout" class="nav-link text-danger"
+           style="position:sticky;bottom:0;background:#0d2137;">
+            <i class="bi bi-box-arrow-left"></i> Déconnexion
+        </a>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+
+    <div class="mb-4">
+        <h5 class="fw-bold" style="color:#1a3c5e;">
+            🌍 Conversion de Devises
+        </h5>
+        <small class="text-muted">
+            Convertissez vos devises en temps réel
+        </small>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Formulaire conversion -->
+        <div class="col-md-7">
+            <div class="card p-4">
+                <h6 class="fw-bold mb-4" style="color:#1a3c5e;">
+                    💱 Calculateur de devises
+                </h6>
+
+                <form th:action="@{/client/devises/convertir}"
+                      method="post">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            Montant à convertir
+                        </label>
+                        <input type="number"
+                               name="montant"
+                               class="form-control"
+                               placeholder="Ex: 1000000"
+                               th:value="${montant}"
+                               min="1" required>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold">
+                                Devise source
+                            </label>
+                            <select name="deviseSource"
+                                    class="form-select" required>
+                                <option value="GNF"
+                                        th:selected="${deviseSource == 'GNF'}">
+                                    🇬🇳 GNF - Franc Guinéen
+                                </option>
+                                <option value="USD"
+                                        th:selected="${deviseSource == 'USD'}">
+                                    🇺🇸 USD - Dollar
+                                </option>
+                                <option value="EUR"
+                                        th:selected="${deviseSource == 'EUR'}">
+                                    🇪🇺 EUR - Euro
+                                </option>
+                                <option value="GBP"
+                                        th:selected="${deviseSource == 'GBP'}">
+                                    🇬🇧 GBP - Livre Sterling
+                                </option>
+                                <option value="MAD"
+                                        th:selected="${deviseSource == 'MAD'}">
+                                    🇲🇦 MAD - Dirham
+                                </option>
+                                <option value="XOF"
+                                        th:selected="${deviseSource == 'XOF'}">
+                                    🌍 XOF - Franc CFA
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex
+                                    align-items-end
+                                    justify-content-center pb-2">
+                            <i class="bi bi-arrow-left-right
+                               fs-3" style="color:#f0a500;">
+                            </i>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold">
+                                Devise cible
+                            </label>
+                            <select name="devisesCible"
+                                    class="form-select" required>
+                                <option value="GNF"
+                                        th:selected="${devisesCible == 'GNF'}">
+                                    🇬🇳 GNF - Franc Guinéen
+                                </option>
+                                <option value="USD"
+                                        th:selected="${devisesCible == 'USD'}">
+                                    🇺🇸 USD - Dollar
+                                </option>
+                                <option value="EUR"
+                                        th:selected="${devisesCible == 'EUR'}">
+                                    🇪🇺 EUR - Euro
+                                </option>
+                                <option value="GBP"
+                                        th:selected="${devisesCible == 'GBP'}">
+                                    🇬🇧 GBP - Livre Sterling
+                                </option>
+                                <option value="MAD"
+                                        th:selected="${devisesCible == 'MAD'}">
+                                    🇲🇦 MAD - Dirham
+                                </option>
+                                <option value="XOF"
+                                        th:selected="${devisesCible == 'XOF'}">
+                                    🌍 XOF - Franc CFA
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                            class="btn btn-convertir w-100">
+                        <i class="bi bi-calculator me-2"></i>
+                        Convertir
+                    </button>
+                </form>
+
+                <!-- Résultat -->
+                <div th:if="${resultat != null}"
+                     class="resultat-card mt-4">
+                    <div class="small opacity-75 mb-2">
+                        Résultat de la conversion
+                    </div>
+                    <div style="font-size:1.2rem;"
+                         th:text="${montant + ' ' + deviseSource}">
+                    </div>
+                    <div style="font-size:2rem;" class="my-2">
+                        ↓
+                    </div>
+                    <div style="font-size:2.5rem;font-weight:900;"
+                         th:text="${resultat + ' ' + devisesCible}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Taux de change -->
+        <div class="col-md-5">
+            <div class="card p-4">
+                <h6 class="fw-bold mb-4" style="color:#1a3c5e;">
+                    📊 Taux de change (base 1 GNF)
+                </h6>
+
+                <div class="taux-card">
+                    <div>
+                        <span class="devise-flag">🇺🇸</span>
+                        <strong>USD</strong> - Dollar américain
+                    </div>
+                    <span class="badge bg-primary fs-6">
+                        0.000115
+                    </span>
+                </div>
+                <div class="taux-card">
+                    <div>
+                        <span class="devise-flag">🇪🇺</span>
+                        <strong>EUR</strong> - Euro
+                    </div>
+                    <span class="badge bg-primary fs-6">
+                        0.000106
+                    </span>
+                </div>
+                <div class="taux-card">
+                    <div>
+                        <span class="devise-flag">🇬🇧</span>
+                        <strong>GBP</strong> - Livre Sterling
+                    </div>
+                    <span class="badge bg-primary fs-6">
+                        0.000091
+                    </span>
+                </div>
+                <div class="taux-card">
+                    <div>
+                        <span class="devise-flag">🇲🇦</span>
+                        <strong>MAD</strong> - Dirham marocain
+                    </div>
+                    <span class="badge bg-primary fs-6">
+                        0.00115
+                    </span>
+                </div>
+                <div class="taux-card">
+                    <div>
+                        <span class="devise-flag">🌍</span>
+                        <strong>XOF</strong> - Franc CFA
+                    </div>
+                    <span class="badge bg-primary fs-6">
+                        0.695
+                    </span>
+                </div>
+
+                <div class="mt-3 p-3 rounded-3"
+                     style="background:#fff3cd;">
+                    <small>
+                        <i class="bi bi-info-circle me-1
+                           text-warning"></i>
+                        Les taux sont indicatifs et mis à jour
+                        régulièrement par l'administration.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

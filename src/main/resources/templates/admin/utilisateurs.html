@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BankaGN - Gestion Utilisateurs</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: #f0f4f8; }
+        .sidebar {
+            width: 260px;
+            height: 100vh;
+            background: linear-gradient(180deg, #0d2137 0%, #1a3c5e 100%);
+            position: fixed;
+            top: 0; left: 0;
+            padding: 20px 0;
+            z-index: 100;
+            overflow-y: auto;
+        }
+        .sidebar .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar .logo span { color: #f0a500; }
+        .sidebar .badge-admin {
+            background: #f0a500;
+            color: white;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.7);
+            padding: 8px 25px;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            color: white;
+            background: rgba(240,165,0,0.2);
+            border-left: 3px solid #f0a500;
+        }
+        .sidebar .nav-link i { width: 25px; margin-right: 10px; }
+        .main-content { margin-left: 260px; padding: 30px; }
+        .topbar {
+            background: white;
+            border-radius: 15px;
+            padding: 15px 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+        }
+        table th {
+            background: #f8f9fa;
+            color: #1a3c5e;
+            font-weight: 600;
+            border: none;
+        }
+        table td { vertical-align: middle;
+            border-color: #f0f0f0; }
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg,
+            #1a3c5e, #f0a500);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .en-attente-banner {
+            background: linear-gradient(135deg,
+            #fff3cd, #ffeaa7);
+            border: 2px solid #f0a500;
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        Banka<span>GN</span>
+        <span class="badge-admin">ADMIN</span>
+    </div>
+    <nav class="mt-3">
+        <a href="/admin/dashboard" class="nav-link">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a href="/admin/utilisateurs" class="nav-link active">
+            <i class="bi bi-people"></i> Utilisateurs
+        </a>
+        <a href="/admin/comptes" class="nav-link">
+            <i class="bi bi-bank"></i> Comptes
+        </a>
+        <a href="/admin/transactions" class="nav-link">
+            <i class="bi bi-arrow-left-right"></i> Transactions
+        </a>
+        <a href="/admin/prets" class="nav-link">
+            <i class="bi bi-cash-coin"></i> Prêts
+        </a>
+        <a href="/admin/fraudes" class="nav-link">
+            <i class="bi bi-shield-exclamation"></i>
+            Alertes Fraude
+        </a>
+        <a href="/admin/audit" class="nav-link">
+            <i class="bi bi-journal-text"></i> Journal Audit
+        </a>
+        <a href="/admin/devises" class="nav-link">
+            <i class="bi bi-currency-exchange"></i>
+            Taux Devises
+        </a>
+        <a href="/admin/rapports" class="nav-link">
+            <i class="bi bi-bar-chart-line"></i> Rapports
+        </a>
+        <hr style="border-color: rgba(255,255,255,0.1);">
+        <a href="/auth/logout" class="nav-link text-danger">
+            <i class="bi bi-box-arrow-left"></i> Déconnexion
+        </a>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+
+    <div class="topbar">
+        <div>
+            <h5 class="mb-0 fw-bold" style="color:#1a3c5e;">
+                👥 Gestion des Utilisateurs
+            </h5>
+            <small class="text-muted">
+                Tous les clients inscrits
+            </small>
+        </div>
+        <div class="d-flex gap-2">
+            <span class="badge bg-warning text-dark fs-6"
+                  th:if="${enAttente > 0}"
+                  th:text="${enAttente} + ' en attente'">
+            </span>
+            <span class="badge bg-primary fs-6"
+                  th:text="${#lists.size(utilisateurs)}
+                  + ' clients'">
+            </span>
+        </div>
+    </div>
+
+    <!-- Alertes -->
+    <div th:if="${succes}"
+         class="alert alert-success rounded-3 mb-4"
+         th:text="${succes}">
+    </div>
+    <div th:if="${erreur}"
+         class="alert alert-danger rounded-3 mb-4"
+         th:text="${erreur}">
+    </div>
+
+    <!-- Bannière en attente -->
+    <div class="en-attente-banner"
+         th:if="${enAttente > 0}">
+        <i class="bi bi-clock-history fs-2 text-warning"></i>
+        <div>
+            <div class="fw-bold" style="color:#1a3c5e;">
+                ⏳
+                <span th:text="${enAttente}"></span>
+                inscription(s) en attente de validation !
+            </div>
+            <small class="text-muted">
+                Vérifiez et validez les nouveaux clients
+                ci-dessous — ils apparaissent en jaune.
+            </small>
+        </div>
+    </div>
+
+    <!-- Tableau -->
+    <div class="card">
+        <div class="card-body p-4">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Client</th>
+                    <th>Email</th>
+                    <th>Téléphone</th>
+                    <th>Date inscription</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="u : ${utilisateurs}"
+                    th:class="${u.statut.name() ==
+                        'EN_ATTENTE'} ?
+                        'table-warning' : ''">
+                    <td>
+                        <div class="d-flex
+                                        align-items-center
+                                        gap-3">
+                            <div class="avatar"
+                                 th:text="${u.prenom
+                                     .substring(0,1) +
+                                     u.nom.substring(0,1)}">
+                            </div>
+                            <div>
+                                <div class="fw-bold"
+                                     th:text="${u.prenom
+                                         + ' ' + u.nom}">
+                                </div>
+                                <small class="text-muted">
+                                    Client
+                                </small>
+                            </div>
+                        </div>
+                    </td>
+                    <td th:text="${u.email}"></td>
+                    <td th:text="${u.telephone}"></td>
+                    <td>
+                        <small th:text="${#temporals.format(
+                                u.dateCreation,
+                                'dd/MM/yyyy HH:mm')}">
+                        </small>
+                    </td>
+                    <td>
+                            <span th:class="${u.statut.name()
+                                == 'ACTIF'} ?
+                                'badge bg-success' :
+                                (${u.statut.name() ==
+                                'EN_ATTENTE'} ?
+                                'badge bg-warning text-dark' :
+                                (${u.statut.name() ==
+                                'BLOQUE'} ?
+                                'badge bg-danger' :
+                                'badge bg-secondary'))"
+                                  th:text="${u.statut}">
+                            </span>
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+
+                            <!-- Valider -->
+                            <a th:if="${u.statut.name()
+                                   == 'EN_ATTENTE'}"
+                               th:href="@{/admin/utilisateurs/valider/{id}(id=${u.id})}"
+                               class="btn btn-sm btn-success"
+                               onclick="return confirm(
+                                   'Valider le compte de cet utilisateur ?')">
+                                <i class="bi bi-check-circle
+                                       me-1"></i> Valider
+                            </a>
+
+                            <!-- Refuser -->
+                            <a th:if="${u.statut.name()
+                                   == 'EN_ATTENTE'}"
+                               th:href="@{/admin/utilisateurs/refuser/{id}(id=${u.id})}"
+                               class="btn btn-sm btn-danger"
+                               onclick="return confirm(
+                                   'Refuser cette inscription ?')">
+                                <i class="bi bi-x-circle
+                                       me-1"></i> Refuser
+                            </a>
+
+                            <!-- Bloquer -->
+                            <a th:if="${u.statut.name()
+                                   == 'ACTIF'}"
+                               th:href="@{/admin/utilisateurs/bloquer/{id}(id=${u.id})}"
+                               class="btn btn-sm btn-warning"
+                               onclick="return confirm(
+                                   'Bloquer cet utilisateur ?')">
+                                <i class="bi bi-lock"></i>
+                            </a>
+
+                            <!-- Débloquer -->
+                            <a th:if="${u.statut.name()
+                                   == 'BLOQUE'}"
+                               th:href="@{/admin/utilisateurs/debloquer/{id}(id=${u.id})}"
+                               class="btn btn-sm btn-success">
+                                <i class="bi bi-unlock"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

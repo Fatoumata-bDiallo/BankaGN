@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BankaGN - Alertes Fraude</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: #f0f4f8; }
+        .sidebar {
+            width: 260px;
+            height: 100vh;
+            background: linear-gradient(180deg, #0d2137 0%, #1a3c5e 100%);
+            position: fixed;
+            top: 0; left: 0;
+            padding: 20px 0;
+            z-index: 100;
+            overflow-y: auto;
+        }
+        .sidebar .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar .logo span { color: #f0a500; }
+        .sidebar .badge-admin {
+            background: #f0a500;
+            color: white;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.7);
+            padding: 8px 25px;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            color: white;
+            background: rgba(240,165,0,0.2);
+            border-left: 3px solid #f0a500;
+        }
+        .sidebar .nav-link i { width: 25px; margin-right: 10px; }
+        .main-content { margin-left: 260px; padding: 30px; }
+        .topbar {
+            background: white;
+            border-radius: 15px;
+            padding: 15px 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card { border: none; border-radius: 15px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05); }
+        .alerte-card {
+            border: none;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            border-left: 5px solid #dc3545;
+            background: white;
+        }
+        .alerte-card.moyen { border-left-color: #f0a500; }
+        .alerte-card.faible { border-left-color: #28a745; }
+        .alerte-card.resolue {
+            border-left-color: #6c757d;
+            opacity: 0.7;
+        }
+        .niveau-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        .stats-card {
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        Banka<span>GN</span>
+        <span class="badge-admin">ADMIN</span>
+    </div>
+    <nav class="mt-3">
+        <a href="/admin/dashboard" class="nav-link">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a href="/admin/utilisateurs" class="nav-link">
+            <i class="bi bi-people"></i> Utilisateurs
+        </a>
+        <a href="/admin/comptes" class="nav-link">
+            <i class="bi bi-bank"></i> Comptes
+        </a>
+        <a href="/admin/transactions" class="nav-link">
+            <i class="bi bi-arrow-left-right"></i> Transactions
+        </a>
+        <a href="/admin/prets" class="nav-link">
+            <i class="bi bi-cash-coin"></i> Prêts
+        </a>
+        <a href="/admin/fraudes" class="nav-link active">
+            <i class="bi bi-shield-exclamation"></i>
+            Alertes Fraude
+        </a>
+        <a href="/admin/audit" class="nav-link">
+            <i class="bi bi-journal-text"></i> Journal Audit
+        </a>
+        <a href="/admin/devises" class="nav-link">
+            <i class="bi bi-currency-exchange"></i>
+            Taux Devises
+        </a>
+        <a href="/admin/rapports" class="nav-link">
+            <i class="bi bi-bar-chart-line"></i> Rapports
+        </a>
+        <hr style="border-color: rgba(255,255,255,0.1);">
+        <a href="/auth/logout" class="nav-link text-danger">
+            <i class="bi bi-box-arrow-left"></i> Déconnexion
+        </a>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+
+    <div class="topbar">
+        <div>
+            <h5 class="mb-0 fw-bold" style="color:#1a3c5e;">
+                🛡️ Alertes de Fraude
+            </h5>
+            <small class="text-muted">
+                Surveillance et sécurité des transactions
+            </small>
+        </div>
+        <span class="badge bg-danger fs-6"
+              th:text="${#lists.size(fraudes)} + ' alertes'">
+        </span>
+    </div>
+
+    <!-- Alertes -->
+    <div th:if="${succes}"
+         class="alert alert-success rounded-3 mb-4"
+         th:text="${succes}">
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="stats-card"
+                 style="background:linear-gradient(
+                 135deg, #dc3545, #c0392b);">
+                <i class="bi bi-shield-x fs-2 mb-2 d-block"></i>
+                <div class="fs-3 fw-bold"
+                     th:text="${enCours}">
+                </div>
+                <div class="small opacity-75">En cours</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card"
+                 style="background:linear-gradient(
+                 135deg, #28a745, #1e7e34);">
+                <i class="bi bi-shield-check fs-2 mb-2 d-block"></i>
+                <div class="fs-3 fw-bold"
+                     th:text="${resolues}">
+                </div>
+                <div class="small opacity-75">Résolues</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card"
+                 style="background:linear-gradient(
+                 135deg, #6c757d, #495057);">
+                <i class="bi bi-shield-slash fs-2 mb-2 d-block"></i>
+                <div class="fs-3 fw-bold"
+                     th:text="${ignorees}">
+                </div>
+                <div class="small opacity-75">Ignorées</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vide -->
+    <div th:if="${fraudes == null or
+                  #lists.isEmpty(fraudes)}">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-shield-check fs-1
+                   text-success"></i>
+                <h5 class="mt-3 text-muted">
+                    Aucune alerte de fraude
+                </h5>
+                <p class="text-muted">
+                    Tout est sécurisé ! 🎉
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste alertes -->
+    <div th:if="${fraudes != null and
+                  !#lists.isEmpty(fraudes)}">
+        <div th:each="f : ${fraudes}"
+             th:class="'alerte-card ' +
+             (${f.statut.name() == 'RESOLUE'} ? 'resolue' :
+             (${f.niveau.name() == 'MOYEN'} ? 'moyen' :
+             (${f.niveau.name() == 'FAIBLE'} ? 'faible' : '')))">
+
+            <div class="d-flex justify-content-between
+                        align-items-start">
+                <div class="d-flex gap-3 align-items-start">
+
+                    <div th:class="${f.niveau.name() == 'ELEVE'} ?
+                        'text-danger fs-2' :
+                        (${f.niveau.name() == 'MOYEN'} ?
+                        'text-warning fs-2' : 'text-success fs-2')">
+                        <i class="bi bi-shield-exclamation"></i>
+                    </div>
+
+                    <div>
+                        <div class="d-flex gap-2
+                                    align-items-center mb-1">
+                            <strong th:text="${f.typeAlerte}">
+                            </strong>
+                            <span th:class="${f.niveau.name()
+                                == 'ELEVE'} ?
+                                'niveau-badge bg-danger text-white' :
+                                (${f.niveau.name() == 'MOYEN'} ?
+                                'niveau-badge bg-warning text-dark' :
+                                'niveau-badge bg-success text-white')"
+                                  th:text="${f.niveau}">
+                            </span>
+                            <span th:class="${f.statut.name()
+                                == 'EN_COURS'} ?
+                                'badge bg-danger' :
+                                (${f.statut.name() == 'RESOLUE'} ?
+                                'badge bg-success' :
+                                'badge bg-secondary')"
+                                  th:text="${f.statut}">
+                            </span>
+                        </div>
+                        <div class="text-muted small mb-1"
+                             th:text="${f.description}">
+                        </div>
+                        <div class="text-muted small">
+                            <i class="bi bi-person me-1"></i>
+                            <span th:text="${f.utilisateur.prenom
+                                + ' ' + f.utilisateur.nom}">
+                            </span>
+                            &nbsp;|&nbsp;
+                            <i class="bi bi-clock me-1"></i>
+                            <span th:text="${#temporals.format(
+                                f.dateAlerte,
+                                'dd/MM/yyyy HH:mm')}">
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2"
+                     th:if="${f.statut.name() == 'EN_COURS'}">
+                    <a th:href="@{/admin/fraudes/resoudre/{id}
+                       (id=${f.id})}"
+                       class="btn btn-sm btn-success"
+                       onclick="return confirm(
+                       'Marquer comme résolue ?')">
+                        <i class="bi bi-check-circle me-1"></i>
+                        Résoudre
+                    </a>
+                    <a th:href="@{/admin/fraudes/ignorer/{id}
+                       (id=${f.id})}"
+                       class="btn btn-sm btn-secondary"
+                       onclick="return confirm(
+                       'Ignorer cette alerte ?')">
+                        <i class="bi bi-x-circle me-1"></i>
+                        Ignorer
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

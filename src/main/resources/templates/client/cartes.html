@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BankaGN - Mes Cartes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: #f0f4f8; }
+        .sidebar {
+            width: 260px;
+            height: 100vh;
+            background: linear-gradient(180deg, #1a3c5e 0%, #0d2137 100%);
+            position: fixed;
+            top: 0; left: 0;
+            padding: 20px 0;
+            z-index: 100;
+            overflow-y: auto;
+        }
+        .sidebar .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar .logo span { color: #f0a500; }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.7);
+            padding: 8px 25px;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            color: white;
+            background: rgba(240,165,0,0.2);
+            border-left: 3px solid #f0a500;
+        }
+        .sidebar .nav-link i { width: 25px; margin-right: 10px; }
+        .main-content { margin-left: 260px; padding: 30px; }
+        .topbar {
+            background: white;
+            border-radius: 15px;
+            padding: 15px 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card { border: none; border-radius: 15px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05); }
+
+        .carte-container {
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+        .carte-container:hover { transform: translateY(-5px); }
+
+        .bank-card {
+            padding: 25px;
+            color: white;
+            position: relative;
+            min-height: 180px;
+        }
+        .bank-card.visa {
+            background: linear-gradient(135deg, #1a3c5e, #2d6a9f);
+        }
+        .bank-card.mastercard {
+            background: linear-gradient(135deg, #e67e00, #c0392b);
+        }
+        .bank-card.virtuelle {
+            background: linear-gradient(135deg, #6f42c1, #4e2d8a);
+        }
+        .bank-card .card-pattern {
+            position: absolute;
+            right: -30px;
+            bottom: -30px;
+            font-size: 10rem;
+            opacity: 0.06;
+            pointer-events: none;
+        }
+        .bank-card .card-chip {
+            width: 45px;
+            height: 35px;
+            background: linear-gradient(135deg, #f0a500, #e67e00);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .card-number {
+            font-size: 1.1rem;
+            letter-spacing: 3px;
+            font-family: monospace;
+            margin-bottom: 20px;
+        }
+        .card-type-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 1.5rem;
+            font-weight: 900;
+            font-style: italic;
+        }
+        .card-actions {
+            background: rgba(0,0,0,0.2);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-nouvelle-carte {
+            background: linear-gradient(135deg, #1a3c5e, #f0a500);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 25px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-nouvelle-carte:hover {
+            transform: translateY(-2px);
+            color: white;
+        }
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 10px 15px;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #1a3c5e;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">Banka<span>GN</span></div>
+    <nav class="mt-3">
+        <a href="/client/dashboard" class="nav-link">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a href="/client/comptes" class="nav-link">
+            <i class="bi bi-bank"></i> Mes Comptes
+        </a>
+        <a href="/client/transactions" class="nav-link">
+            <i class="bi bi-arrow-left-right"></i> Transactions
+        </a>
+        <a href="/client/cartes" class="nav-link active">
+            <i class="bi bi-credit-card"></i> Mes Cartes
+        </a>
+        <a href="/client/prets" class="nav-link">
+            <i class="bi bi-cash-coin"></i> Prêts
+        </a>
+        <a href="/client/beneficiaires" class="nav-link">
+            <i class="bi bi-people"></i> Bénéficiaires
+        </a>
+        <a href="/client/releves" class="nav-link">
+            <i class="bi bi-file-pdf"></i> Relevés PDF
+        </a>
+        <a href="/client/devises" class="nav-link">
+            <i class="bi bi-currency-exchange"></i> Devises
+        </a>
+        <a href="/client/notifications" class="nav-link">
+            <i class="bi bi-bell"></i> Notifications
+        </a>
+        <hr style="border-color: rgba(255,255,255,0.1);">
+        <a href="/auth/logout" class="nav-link text-danger"
+           style="position:sticky;bottom:0;background:#0d2137;">
+            <i class="bi bi-box-arrow-left"></i> Déconnexion
+        </a>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+
+    <div class="topbar">
+        <div>
+            <h5 class="mb-0 fw-bold" style="color:#1a3c5e;">
+                💳 Mes Cartes Bancaires
+            </h5>
+            <small class="text-muted">
+                Gérez vos cartes Visa, Mastercard et Virtuelle
+            </small>
+        </div>
+        <button class="btn-nouvelle-carte"
+                data-bs-toggle="modal"
+                data-bs-target="#modalNouvelleCart">
+            <i class="bi bi-plus-circle me-2"></i>
+            Nouvelle Carte
+        </button>
+    </div>
+
+    <!-- Alertes -->
+    <div th:if="${succes}"
+         class="alert alert-success rounded-3 mb-4"
+         th:text="${succes}">
+    </div>
+    <div th:if="${erreur}"
+         class="alert alert-danger rounded-3 mb-4"
+         th:text="${erreur}">
+    </div>
+
+    <!-- Pas de cartes -->
+    <div th:if="${cartes == null or #lists.isEmpty(cartes)}">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-credit-card fs-1 text-muted"></i>
+                <h5 class="mt-3 text-muted">
+                    Vous n'avez pas encore de carte
+                </h5>
+                <p class="text-muted">
+                    Créez votre première carte bancaire !
+                </p>
+                <button class="btn-nouvelle-carte mt-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalNouvelleCart">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Créer une carte
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des cartes -->
+    <div class="row g-4"
+         th:if="${cartes != null and !#lists.isEmpty(cartes)}">
+        <div class="col-md-6" th:each="carte : ${cartes}">
+            <div class="carte-container">
+
+                <!-- Carte visuelle -->
+                <div th:class="'bank-card ' +
+                    (${carte.type.name() == 'VISA'} ? 'visa' :
+                    (${carte.type.name() == 'MASTERCARD'} ?
+                    'mastercard' : 'virtuelle'))">
+
+                    <div class="d-flex justify-content-between
+                                align-items-start mb-2">
+                        <span th:class="${carte.statut.name() == 'ACTIVE'} ?
+                            'badge bg-success' : 'badge bg-danger'"
+                              th:text="${carte.statut}">
+                        </span>
+                        <div class="fw-bold fs-5 fst-italic"
+                             th:text="${carte.type}">
+                        </div>
+                    </div>
+
+                    <div class="card-chip mt-2"></div>
+
+                    <div class="card-number"
+                         th:text="${carte.numeroCarte}">
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="small opacity-75">Expire le</div>
+                            <div class="fw-bold"
+                                 th:text="${#temporals.format(
+                                 carte.dateExpiration, 'MM/yyyy')}">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="small opacity-75">CVV</div>
+                            <div class="fw-bold"
+                                 th:text="${carte.cvv}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <i class="bi bi-credit-card card-pattern"></i>
+                </div>
+
+                <!-- Boutons EN DEHORS de la carte -->
+                <div class="card-actions">
+
+                    <div class="d-flex gap-2">
+                        <!-- Bloquer -->
+                        <a th:if="${carte.statut.name() == 'ACTIVE'}"
+                           th:href="@{/client/cartes/bloquer/{id}(id=${carte.id})}"
+                           class="btn btn-sm btn-warning rounded-pill"
+                           onclick="return confirm('Bloquer cette carte ?')">
+                            <i class="bi bi-lock me-1"></i> Bloquer
+                        </a>
+                        <!-- Débloquer -->
+                        <a th:if="${carte.statut.name() == 'BLOQUEE'}"
+                           th:href="@{/client/cartes/debloquer/{id}(id=${carte.id})}"
+                           class="btn btn-sm btn-success rounded-pill">
+                            <i class="bi bi-unlock me-1"></i> Débloquer
+                        </a>
+                        <!-- Supprimer -->
+                        <a th:href="@{/client/cartes/supprimer/{id}(id=${carte.id})}"
+                           class="btn btn-sm btn-danger rounded-pill"
+                           onclick="return confirm('Supprimer cette carte ?')">
+                            <i class="bi bi-trash me-1"></i> Supprimer
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nouvelle Carte -->
+<div class="modal fade" id="modalNouvelleCart" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"
+                    style="color:#1a3c5e;">
+                    💳 Créer une Nouvelle Carte
+                </h5>
+                <button type="button" class="btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+            </div>
+            <div class="modal-body">
+                <form th:action="@{/client/cartes/creer}"
+                      method="post">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            Compte associé
+                        </label>
+                        <select name="compteId"
+                                class="form-select" required>
+                            <option value="">
+                                Sélectionnez un compte
+                            </option>
+                            <option th:each="c : ${comptes}"
+                                    th:value="${c.id}"
+                                    th:text="${c.numeroCompte +
+                                    ' (' + c.type + ')'}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">
+                            Type de carte
+                        </label>
+                        <div class="row g-3">
+                            <div class="col-4">
+                                <input type="radio" name="type"
+                                       value="VISA" id="visa"
+                                       class="btn-check">
+                                <label for="visa"
+                                       class="btn btn-outline-primary w-100">
+                                    VISA
+                                </label>
+                            </div>
+                            <div class="col-4">
+                                <input type="radio" name="type"
+                                       value="MASTERCARD"
+                                       id="mastercard"
+                                       class="btn-check">
+                                <label for="mastercard"
+                                       class="btn btn-outline-danger w-100">
+                                    MASTER
+                                </label>
+                            </div>
+                            <div class="col-4">
+                                <input type="radio" name="type"
+                                       value="VIRTUELLE"
+                                       id="virtuelle"
+                                       class="btn-check">
+                                <label for="virtuelle"
+                                       class="btn w-100"
+                                       style="border:2px solid #6f42c1;
+                                              color:#6f42c1;">
+                                    VIRTUELLE
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit"
+                            class="btn w-100 fw-bold py-3"
+                            style="background:linear-gradient(
+                                135deg, #1a3c5e, #f0a500);
+                                color:white;border-radius:12px;">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Créer ma carte
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

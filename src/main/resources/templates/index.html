@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BankaGN - Votre Banque Numérique en Guinée</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        /* NAVBAR */
+        .navbar {
+            background: rgba(13, 33, 55, 0.97) !important;
+            backdrop-filter: blur(10px);
+            padding: 15px 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+        }
+        .navbar-brand {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: white !important;
+            letter-spacing: -1px;
+        }
+        .navbar-brand span { color: #f0a500; }
+        .nav-link {
+            color: rgba(255,255,255,0.85) !important;
+            font-weight: 500;
+            margin: 0 5px;
+            transition: color 0.3s;
+        }
+        .nav-link:hover { color: #f0a500 !important; }
+        .btn-login {
+            color: white;
+            border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 25px;
+            padding: 8px 25px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        .btn-login:hover {
+            border-color: white;
+            color: white;
+            background: rgba(255,255,255,0.1);
+        }
+        .btn-register {
+            background: linear-gradient(135deg, #f0a500, #e67e00);
+            color: white !important;
+            border: none;
+            border-radius: 25px;
+            padding: 8px 25px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(240,165,0,0.4);
+        }
+
+        /* HERO */
+        .hero {
+            min-height: 100vh;
+            background-image:
+                    linear-gradient(135deg,
+                    rgba(13, 33, 55, 0.93) 0%,
+                    rgba(26, 60, 94, 0.87) 100%),
+                    url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            display: flex;
+            align-items: center;
+            padding-top: 80px;
+        }
+        .hero h1 {
+            font-size: 3.8rem;
+            font-weight: 900;
+            color: white;
+            line-height: 1.15;
+            letter-spacing: -1px;
+        }
+        .hero h1 .highlight { color: #f0a500; }
+        .hero p {
+            color: rgba(255,255,255,0.82);
+            font-size: 1.15rem;
+            line-height: 1.9;
+            max-width: 550px;
+        }
+        .btn-hero-main {
+            background: linear-gradient(135deg, #f0a500, #e67e00);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 16px 42px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-hero-main:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(240,165,0,0.45);
+            color: white;
+        }
+        .btn-hero-outline {
+            background: transparent;
+            color: white;
+            border: 2px solid rgba(255,255,255,0.7);
+            border-radius: 30px;
+            padding: 14px 42px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-hero-outline:hover {
+            background: white;
+            color: #1a3c5e;
+            border-color: white;
+            transform: translateY(-3px);
+        }
+
+        /* STATS HERO */
+        .hero-stats {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 28px 35px;
+            margin-top: 45px;
+        }
+        .stat-num {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #f0a500;
+            line-height: 1;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.65);
+            margin-top: 5px;
+        }
+        .stat-divider {
+            border-left: 1px solid rgba(255,255,255,0.2);
+        }
+
+        /* HERO CARD */
+        .hero-card {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 25px;
+            padding: 45px 35px;
+            text-align: center;
+        }
+        .hero-card-icon {
+            font-size: 7rem;
+            color: #f0a500;
+            opacity: 0.85;
+            display: block;
+        }
+        .hero-card-badge {
+            display: inline-block;
+            background: rgba(240,165,0,0.15);
+            border: 1px solid rgba(240,165,0,0.4);
+            color: #f0a500;
+            border-radius: 20px;
+            padding: 6px 18px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin: 5px;
+        }
+
+        /* SECTIONS */
+        .section-tag {
+            display: inline-block;
+            background: rgba(240,165,0,0.1);
+            color: #f0a500;
+            border: 1px solid rgba(240,165,0,0.3);
+            border-radius: 20px;
+            padding: 6px 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        .section-title {
+            font-size: 2.4rem;
+            font-weight: 800;
+            color: #1a3c5e;
+            line-height: 1.2;
+        }
+        .section-title span { color: #f0a500; }
+
+        /* SERVICE CARDS */
+        .service-card {
+            border: none;
+            border-radius: 20px;
+            padding: 35px 28px;
+            text-align: center;
+            transition: all 0.35s;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            height: 100%;
+            background: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #1a3c5e, #f0a500);
+            transform: scaleX(0);
+            transition: transform 0.35s;
+        }
+        .service-card:hover::before { transform: scaleX(1); }
+        .service-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 45px rgba(0,0,0,0.12);
+        }
+        .service-icon {
+            width: 75px;
+            height: 75px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.9rem;
+            margin: 0 auto 22px;
+        }
+        .service-card h5 {
+            font-weight: 700;
+            color: #1a3c5e;
+            margin-bottom: 12px;
+            font-size: 1.05rem;
+        }
+        .service-card p {
+            color: #6c757d;
+            font-size: 0.92rem;
+            line-height: 1.75;
+        }
+
+        /* WHY SECTION */
+        .why-section {
+            background: linear-gradient(135deg, #0d2137 0%, #1a3c5e 100%);
+            padding: 100px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .why-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: rgba(240,165,0,0.05);
+            border-radius: 50%;
+        }
+        .why-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 32px 28px;
+            transition: all 0.35s;
+            height: 100%;
+        }
+        .why-card:hover {
+            background: rgba(240,165,0,0.08);
+            border-color: rgba(240,165,0,0.4);
+            transform: translateY(-6px);
+        }
+        .why-icon {
+            width: 58px;
+            height: 58px;
+            background: linear-gradient(135deg, #f0a500, #e67e00);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            color: white;
+            margin-bottom: 20px;
+        }
+        .why-card h5 {
+            color: white;
+            font-weight: 700;
+            margin-bottom: 12px;
+            font-size: 1.05rem;
+        }
+        .why-card p {
+            color: rgba(255,255,255,0.58);
+            font-size: 0.92rem;
+            line-height: 1.75;
+        }
+
+        /* CTA */
+        .cta-section {
+            background: linear-gradient(135deg, #f0a500 0%, #c97d00 100%);
+            padding: 90px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: -30%;
+            left: -5%;
+            width: 400px;
+            height: 400px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 50%;
+        }
+
+        /* FOOTER */
+        .footer {
+            background: #060f1a;
+            color: rgba(255,255,255,0.65);
+            padding: 70px 0 0;
+        }
+        .footer-brand {
+            font-size: 2rem;
+            font-weight: 900;
+            color: white;
+            letter-spacing: -1px;
+        }
+        .footer-brand span { color: #f0a500; }
+        .footer-desc {
+            color: rgba(255,255,255,0.55);
+            line-height: 1.8;
+            font-size: 0.95rem;
+            margin: 15px 0 25px;
+        }
+        .footer h6 {
+            color: white;
+            font-weight: 700;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 22px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0a500;
+            display: inline-block;
+        }
+        .footer-link {
+            color: rgba(255,255,255,0.55);
+            text-decoration: none;
+            transition: all 0.3s;
+            display: block;
+            margin-bottom: 10px;
+            font-size: 0.93rem;
+        }
+        .footer-link:hover {
+            color: #f0a500;
+            padding-left: 5px;
+        }
+        .contact-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 18px;
+            color: rgba(255,255,255,0.65);
+            font-size: 0.93rem;
+        }
+        .contact-icon {
+            width: 38px;
+            height: 38px;
+            background: rgba(240,165,0,0.15);
+            border: 1px solid rgba(240,165,0,0.3);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f0a500;
+            flex-shrink: 0;
+            font-size: 1rem;
+        }
+        .contact-text strong {
+            color: white;
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 2px;
+        }
+        .social-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.7);
+            font-size: 1.1rem;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        .social-btn:hover {
+            background: #f0a500;
+            border-color: #f0a500;
+            color: white;
+            transform: translateY(-3px);
+        }
+        .footer-bottom {
+            background: rgba(0,0,0,0.3);
+            padding: 20px 0;
+            margin-top: 50px;
+        }
+        .footer-bottom p {
+            color: rgba(255,255,255,0.35);
+            font-size: 0.85rem;
+            margin: 0;
+        }
+        .footer-bottom span { color: #f0a500; }
+    </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg">
+    <div class="container">
+        <a class="navbar-brand" href="/">
+            Banka<span>GN</span>
+        </a>
+        <button class="navbar-toggler border-0" type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarNav">
+            <i class="bi bi-list text-white fs-3"></i>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav mx-auto gap-1">
+                <li class="nav-item">
+                    <a class="nav-link" href="#services">
+                        Services
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#pourquoi">
+                        Pourquoi nous
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#contact">
+                        Contact
+                    </a>
+                </li>
+            </ul>
+            <div class="d-flex gap-3 align-items-center">
+                <a href="/auth/login" class="btn-login">
+                    Se connecter
+                </a>
+                <a href="/auth/register" class="btn-register">
+                    <i class="bi bi-person-plus me-1"></i>
+                    Ouvrir un compte
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <div class="section-tag mb-3">
+                    🇬🇳 Banque 100% Guinéenne
+                </div>
+                <h1>
+                    La Banque<br>
+                    <span class="highlight">Numérique</span><br>
+                    de Guinée
+                </h1>
+                <p class="mt-4 mb-5">
+                    BankaGN révolutionne votre expérience bancaire.
+                    Gérez vos comptes, effectuez des transferts et
+                    accédez à tous vos services financiers en toute
+                    sécurité, 24h/24 et 7j/7.
+                </p>
+                <div class="d-flex gap-3 flex-wrap">
+                    <a href="/auth/register" class="btn-hero-main">
+                        <i class="bi bi-person-plus me-2"></i>
+                        Ouvrir un compte gratuit
+                    </a>
+                    <a href="/auth/login" class="btn-hero-outline">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>
+                        Se connecter
+                    </a>
+                </div>
+
+                <!-- Stats -->
+                <div class="hero-stats mt-5">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="stat-num">10K+</div>
+                            <div class="stat-label">Clients satisfaits</div>
+                        </div>
+                        <div class="col-4 stat-divider">
+                            <div class="stat-num">99.9%</div>
+                            <div class="stat-label">Disponibilité</div>
+                        </div>
+                        <div class="col-4 stat-divider">
+                            <div class="stat-num">256bit</div>
+                            <div class="stat-label">Sécurité SSL</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 d-none d-lg-block">
+                <div class="hero-card">
+                    <i class="bi bi-bank2 hero-card-icon"></i>
+                    <div class="mt-4 text-white fw-bold fs-4">
+                        Sécurisé & Fiable
+                    </div>
+                    <div class="text-white-50 mb-4">
+                        Vos finances entre de bonnes mains
+                    </div>
+                    <div>
+                        <span class="hero-card-badge">
+                            🔒 JWT Sécurisé
+                        </span>
+                        <span class="hero-card-badge">
+                            ⚡ Temps réel
+                        </span>
+                        <span class="hero-card-badge">
+                            📱 Multi-appareils
+                        </span>
+                        <span class="hero-card-badge">
+                            🌍 Multi-devises
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- SERVICES -->
+<section id="services" class="py-5" style="background:#f8fafc;">
+    <div class="container py-5">
+        <div class="text-center mb-5">
+            <div class="section-tag">Nos Services</div>
+            <h2 class="section-title">
+                Tout ce dont vous avez<br>
+                besoin en <span>un seul endroit</span>
+            </h2>
+            <p class="text-muted mt-3 fs-6">
+                Des services bancaires modernes adaptés à vos besoins
+            </p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="service-card">
+                    <div class="service-icon"
+                         style="background:#e8f4fd;">
+                        <i class="bi bi-bank"
+                           style="color:#1a3c5e;"></i>
+                    </div>
+                    <h5>Comptes Bancaires</h5>
+                    <p>Ouvrez un compte courant ou épargne
+                        en quelques minutes. Gérez votre argent
+                        simplement et efficacement.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="service-card">
+                    <div class="service-icon"
+                         style="background:#fff3cd;">
+                        <i class="bi bi-arrow-left-right"
+                           style="color:#f0a500;"></i>
+                    </div>
+                    <h5>Transferts Instantanés</h5>
+                    <p>Envoyez de l'argent à vos proches
+                        instantanément. Des transferts sécurisés
+                        vers n'importe quel compte BankaGN.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="service-card">
+                    <div class="service-icon"
+                         style="background:#d4edda;">
+                        <i class="bi bi-credit-card"
+                           style="color:#28a745;"></i>
+                    </div>
+                    <h5>Cartes Bancaires</h5>
+                    <p>Obtenez votre carte Visa ou Mastercard.
+                        Payez partout dans le monde en toute
+                        sécurité.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="service-card">
+                    <div class="service-icon"
+                         style="background:#f8d7da;">
+                        <i class="bi bi-cash-coin"
+                           style="color:#dc3545;"></i>
+                    </div>
+                    <h5>Compte Épargne</h5>
+                    <p>Faites fructifier votre argent avec
+                        notre compte épargne rémunéré.
+                        Taux attractifs et sécurisés.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="service-card">
+                    <div class="service-icon"
+                         style="background:#d1ecf1;">
+                        <i class="bi bi-currency-exchange"
+                           style="color:#17a2b8;"></i>
+                    </div>
+                    <h5>Conversion de Devises</h5>
+                    <p>Convertissez GNF, USD, EUR, GBP
+                        en temps réel aux meilleurs
+                        taux du marché.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- POURQUOI NOUS -->
+<section id="pourquoi" class="why-section">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="section-tag">Nos Avantages</div>
+            <h2 style="font-size:2.4rem;font-weight:800;
+                       color:white;line-height:1.2;">
+                Pourquoi choisir
+                <span style="color:#f0a500;">BankaGN ?</span>
+            </h2>
+            <p style="color:rgba(255,255,255,0.55);
+                      font-size:1rem;" class="mt-3">
+                Des raisons solides de nous faire confiance
+            </p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="why-card">
+                    <div class="why-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h5>Sécurité Maximum</h5>
+                    <p>Données protégées par chiffrement
+                        SSL 256 bits. Authentification JWT
+                        pour chaque accès à votre compte.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="why-card">
+                    <div class="why-icon">
+                        <i class="bi bi-lightning-charge"></i>
+                    </div>
+                    <h5>Rapidité & Simplicité</h5>
+                    <p>Ouvrez votre compte en 2 minutes.
+                        Effectuez vos opérations instantanément
+                        depuis votre téléphone ou ordinateur.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="why-card">
+                    <div class="why-icon">
+                        <i class="bi bi-headset"></i>
+                    </div>
+                    <h5>Support 24h/24</h5>
+                    <p>Notre équipe est disponible à toute
+                        heure pour vous accompagner et répondre
+                        à toutes vos questions.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="why-card">
+                    <div class="why-icon">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <h5>Épargne Rentable</h5>
+                    <p>Profitez de taux d'intérêt compétitifs
+                        sur votre épargne. Votre argent travaille
+                        pour vous automatiquement.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="why-card">
+                    <div class="why-icon">
+                        <i class="bi bi-phone"></i>
+                    </div>
+                    <h5>100% Digital</h5>
+                    <p>Accédez à tous vos services bancaires
+                        depuis n'importe quel appareil.
+                        Pas de file d'attente, pas de paperasse.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="why-card">
+                    <div class="why-icon">
+                        <i class="bi bi-geo-alt"></i>
+                    </div>
+                    <h5>100% Guinéen</h5>
+                    <p>Une banque créée pour les Guinéens,
+                        par des Guinéens. Nous comprenons
+                        vos besoins financiers locaux.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+    <div class="container text-center position-relative">
+        <h2 style="font-size:2.6rem;font-weight:900;
+                   color:white;line-height:1.2;">
+            Prêt à rejoindre BankaGN ?
+        </h2>
+        <p style="color:rgba(255,255,255,0.9);
+                  font-size:1.1rem;" class="mt-3 mb-5">
+            Ouvrez votre compte gratuitement en 2 minutes
+            et profitez de tous nos services bancaires
+        </p>
+        <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <a href="/auth/register"
+               class="btn btn-light btn-lg rounded-pill
+                      px-5 fw-bold"
+               style="color:#e67e00;">
+                <i class="bi bi-person-plus me-2"></i>
+                Ouvrir un compte gratuit
+            </a>
+            <a href="/auth/login"
+               class="btn btn-outline-light btn-lg
+                      rounded-pill px-5 fw-bold">
+                <i class="bi bi-box-arrow-in-right me-2"></i>
+                Se connecter
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER / CONTACT -->
+<footer class="footer" id="contact">
+    <div class="container">
+        <div class="row g-5">
+
+            <!-- Brand -->
+            <div class="col-lg-4">
+                <div class="footer-brand">
+                    Banka<span>GN</span>
+                </div>
+                <p class="footer-desc">
+                    La banque numérique de référence en Guinée.
+                    Sécurisée, rapide et accessible à tous les
+                    Guinéens où qu'ils soient.
+                </p>
+                <div class="d-flex gap-2">
+                    <a href="#" class="social-btn">
+                        <i class="bi bi-facebook"></i>
+                    </a>
+                    <a href="#" class="social-btn">
+                        <i class="bi bi-twitter-x"></i>
+                    </a>
+                    <a href="#" class="social-btn">
+                        <i class="bi bi-instagram"></i>
+                    </a>
+                    <a href="#" class="social-btn">
+                        <i class="bi bi-linkedin"></i>
+                    </a>
+                    <a href="#" class="social-btn">
+                        <i class="bi bi-whatsapp"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Services -->
+            <div class="col-lg-2 col-md-4">
+                <h6>Services</h6>
+                <a href="#" class="footer-link">Compte Courant</a>
+                <a href="#" class="footer-link">Compte Épargne</a>
+                <a href="#" class="footer-link">Cartes Bancaires</a>
+                <a href="#" class="footer-link">Prêts Bancaires</a>
+                <a href="#" class="footer-link">
+                    Conversion Devises
+                </a>
+                <a href="#" class="footer-link">QR Code</a>
+            </div>
+
+            <!-- Liens -->
+            <div class="col-lg-2 col-md-4">
+                <h6>Entreprise</h6>
+                <a href="#" class="footer-link">À propos</a>
+                <a href="#" class="footer-link">Notre équipe</a>
+                <a href="#" class="footer-link">Carrières</a>
+                <a href="#" class="footer-link">Actualités</a>
+                <a href="#" class="footer-link">
+                    Politique de confidentialité
+                </a>
+            </div>
+
+            <!-- Contact -->
+            <div class="col-lg-4 col-md-4">
+                <h6>Contactez-nous</h6>
+
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <i class="bi bi-geo-alt-fill"></i>
+                    </div>
+                    <div class="contact-text">
+                        <strong>Adresse</strong>
+                        Ratoma, Conakry, République de Guinée
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <i class="bi bi-telephone-fill"></i>
+                    </div>
+                    <div class="contact-text">
+                        <strong>Téléphone</strong>
+                        +224 626 335 841
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <i class="bi bi-envelope-fill"></i>
+                    </div>
+                    <div class="contact-text">
+                        <strong>Email</strong>
+                        contact@bankagn.com
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <i class="bi bi-clock-fill"></i>
+                    </div>
+                    <div class="contact-text">
+                        <strong>Horaires</strong>
+                        Lun - Sam : 08h00 - 18h00
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Bottom -->
+    <div class="footer-bottom">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p>
+                        © 2026 <span>BankaGN</span> —
+                        Tous droits réservés
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p>
+                        Développé par
+                        <span>ODC-Guinée FullStack Team</span>
+                        avec ❤️
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
