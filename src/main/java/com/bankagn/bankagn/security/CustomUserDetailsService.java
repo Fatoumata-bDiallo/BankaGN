@@ -32,20 +32,24 @@ public class CustomUserDetailsService implements UserDetailsService {
                         new UsernameNotFoundException(
                                 "Utilisateur non trouvé : " + email));
 
-        // Vérifier statut BLOQUE
+        // Bloquer si EN_ATTENTE
+        if (utilisateur.getStatut() ==
+                Utilisateur.Statut.EN_ATTENTE) {
+            throw new DisabledException(
+                    "Compte en attente de validation !");
+        }
+
+        // Bloquer si BLOQUE
         if (utilisateur.getStatut() ==
                 Utilisateur.Statut.BLOQUE) {
             throw new LockedException("Compte bloqué !");
         }
 
-        // Vérifier statut INACTIF
+        // Bloquer si INACTIF
         if (utilisateur.getStatut() ==
                 Utilisateur.Statut.INACTIF) {
             throw new DisabledException("Compte inactif !");
         }
-
-        // Ne pas bloquer EN_ATTENTE ici
-        // AuthController gère ce cas
 
         return User.builder()
                 .username(utilisateur.getEmail())

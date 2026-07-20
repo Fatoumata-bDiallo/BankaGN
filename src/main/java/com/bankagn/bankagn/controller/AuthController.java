@@ -13,6 +13,8 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -49,38 +51,60 @@ public class AuthController {
 
             if (utilisateur == null) {
                 model.addAttribute("erreur",
-                        "Email ou mot de passe incorrect !");
+                        "❌ Aucun compte trouvé avec cet email.");
                 return "auth/login";
             }
 
+            // Vérifier statut EN_ATTENTE
             if (utilisateur.getStatut() ==
                     Utilisateur.Statut.EN_ATTENTE) {
                 model.addAttribute("erreur",
-                        "⏳ Votre compte est en attente de " +
-                                "validation par l'administrateur.");
+                        "⏳ Votre compte est en cours de vérification. " +
+                                "Vous ne pouvez pas vous connecter tant que " +
+                                "l'administrateur n'a pas validé votre inscription. " +
+                                "Vous serez notifié dès l'activation de votre compte.");
                 return "auth/login";
             }
 
+            // Vérifier statut BLOQUE
             if (utilisateur.getStatut() ==
                     Utilisateur.Statut.BLOQUE) {
                 model.addAttribute("erreur",
-                        "🔒 Votre compte a été bloqué. " +
-                                "Contactez l'administrateur.");
+                        "🔒 Votre compte a été suspendu. " +
+                                "Veuillez contacter l'administration BankaGN " +
+                                "pour plus d'informations.");
                 return "auth/login";
             }
 
+            // Vérifier statut INACTIF
             if (utilisateur.getStatut() ==
                     Utilisateur.Statut.INACTIF) {
                 model.addAttribute("erreur",
-                        "❌ Votre compte est inactif.");
+                        "❌ Votre demande d'inscription a été refusée. " +
+                                "Veuillez contacter l'administration BankaGN " +
+                                "pour plus d'informations.");
                 return "auth/login";
             }
 
+            // Authentifier
             try {
                 authenticationManager.authenticate(
                         new UsernamePasswordAuthenticationToken(
                                 email, motDePasse));
+            } catch (DisabledException e) {
+                model.addAttribute("erreur",
+                        "⏳ Votre compte est en cours de vérification. " +
+                                "Vous ne pouvez pas vous connecter tant que " +
+                                "l'administrateur n'a pas validé votre inscription.");
+                return "auth/login";
+            } catch (LockedException e) {
+                model.addAttribute("erreur",
+                        "🔒 Votre compte a été suspendu suite à " +
+                                "plusieurs tentatives de connexion échouées. " +
+                                "Contactez l'administration BankaGN.");
+                return "auth/login";
             } catch (Exception e) {
+                // Incrémenter tentatives échouées
                 utilisateur.setTentativesConnexion(
                         utilisateur.getTentativesConnexion() + 1);
                 utilisateurRepository.save(utilisateur);
@@ -94,39 +118,43 @@ public class AuthController {
                         email,
                         JournalAudit.TypeAction.CONNEXION);
 
+                // Alerte après 3 tentatives
                 if (utilisateur.getTentativesConnexion() >= 3) {
                     creerAlerteFraude(utilisateur,
                             "Tentatives connexion suspectes",
                             utilisateur.getTentativesConnexion() +
                                     " tentatives échouées pour " + email,
                             AlerteFraude.NiveauAlerte.ELEVE);
-
-                    if (utilisateur.getTentativesConnexion()
-                            >= 5) {
-                        utilisateur.setStatut(
-                                Utilisateur.Statut.BLOQUE);
-                        utilisateurRepository.save(utilisateur);
-
-                        // Audit blocage
-                        enregistrerAudit(
-                                "Compte bloqué automatiquement",
-                                "Compte " + email +
-                                        " bloqué après 5 tentatives",
-                                "SYSTEME",
-                                JournalAudit.TypeAction.UTILISATEUR);
-
-                        model.addAttribute("erreur",
-                                "🔒 Compte bloqué après " +
-                                        "5 tentatives échouées !");
-                        return "auth/login";
-                    }
                 }
 
+                // Blocage après 5 tentatives
+                if (utilisateur.getTentativesConnexion() >= 5) {
+                    utilisateur.setStatut(
+                            Utilisateur.Statut.BLOQUE);
+                    utilisateurRepository.save(utilisateur);
+
+                    enregistrerAudit(
+                            "Compte bloqué automatiquement",
+                            "Compte " + email +
+                                    " bloqué après 5 tentatives",
+                            "SYSTEME",
+                            JournalAudit.TypeAction.UTILISATEUR);
+
+                    model.addAttribute("erreur",
+                            "🔒 Votre compte a été suspendu " +
+                                    "automatiquement après 5 tentatives " +
+                                    "de connexion incorrectes. " +
+                                    "Veuillez contacter l'administration BankaGN.");
+                    return "auth/login";
+                }
+
+                int restantes = 5 -
+                        utilisateur.getTentativesConnexion();
                 model.addAttribute("erreur",
-                        "❌ Email ou mot de passe incorrect ! " +
-                                "Tentative " +
-                                utilisateur.getTentativesConnexion() +
-                                "/5");
+                        "❌ Email ou mot de passe incorrect. " +
+                                "Il vous reste " + restantes +
+                                " tentative(s) avant la suspension " +
+                                "de votre compte.");
                 return "auth/login";
             }
 
@@ -134,7 +162,6 @@ public class AuthController {
             utilisateur.setTentativesConnexion(0);
             utilisateurRepository.save(utilisateur);
 
-            // Audit connexion réussie
             enregistrerAudit(
                     "Connexion réussie",
                     utilisateur.getPrenom() + " " +
@@ -161,7 +188,8 @@ public class AuthController {
 
         } catch (Exception e) {
             model.addAttribute("erreur",
-                    "Email ou mot de passe incorrect !");
+                    "❌ Une erreur est survenue. " +
+                            "Veuillez réessayer.");
             return "auth/login";
         }
     }
@@ -183,7 +211,7 @@ public class AuthController {
 
         if (utilisateurRepository.existsByEmail(email)) {
             model.addAttribute("erreur",
-                    "⚠️ Cet email est déjà utilisé !");
+                    "⚠️ Un compte existe déjà avec cet email !");
             return "auth/register";
         }
 
@@ -199,7 +227,6 @@ public class AuthController {
 
         utilisateurRepository.save(utilisateur);
 
-        // Audit inscription
         enregistrerAudit(
                 "Nouvelle inscription",
                 prenom + " " + nom +
@@ -220,7 +247,8 @@ public class AuthController {
                     .message("Un nouveau client " +
                             prenom + " " + nom +
                             " (" + email + ") " +
-                            "vient de s'inscrire.")
+                            "vient de s'inscrire. " +
+                            "Veuillez valider son compte.")
                     .type(Notification.TypeNotification.SYSTEME)
                     .lu(false)
                     .utilisateur(admin)
@@ -229,8 +257,11 @@ public class AuthController {
         }
 
         model.addAttribute("succes",
-                "✅ Inscription réussie ! Votre compte est " +
-                        "en attente de validation.");
+                "✅ Votre inscription a bien été enregistrée ! " +
+                        "Votre compte est en cours de vérification par " +
+                        "notre équipe. Vous recevrez une confirmation " +
+                        "dès que votre compte sera activé. " +
+                        "Merci de votre confiance en BankaGN !");
         return "auth/login";
     }
 
