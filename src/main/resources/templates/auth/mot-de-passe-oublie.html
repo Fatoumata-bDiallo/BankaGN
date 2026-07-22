@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BankaGN - Connexion</title>
+    <title>BankaGN - Mot de passe oublié</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -14,16 +14,17 @@
             align-items: center;
             justify-content: center;
         }
-        .login-card {
+        .card {
             background: white;
             border-radius: 25px;
             padding: 45px 40px;
             width: 100%;
             max-width: 440px;
             box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+            border: none;
         }
         .logo {
-            font-size: 2.8rem;
+            font-size: 2.5rem;
             font-weight: 900;
             color: #1a3c5e;
             text-align: center;
@@ -34,14 +35,13 @@
             text-align: center;
             color: #6c757d;
             font-size: 0.9rem;
-            margin-bottom: 35px;
+            margin-bottom: 30px;
         }
         .form-control {
             border-radius: 12px;
             padding: 13px 15px;
             border: 2px solid #e9ecef;
             font-size: 0.95rem;
-            transition: all 0.3s;
         }
         .form-control:focus {
             border-color: #1a3c5e;
@@ -50,7 +50,6 @@
         .form-label {
             font-weight: 600;
             color: #1a3c5e;
-            margin-bottom: 6px;
         }
         .input-group-text {
             border-radius: 12px 0 0 12px;
@@ -63,7 +62,7 @@
             border-radius: 0 12px 12px 0;
             border-left: none;
         }
-        .btn-login {
+        .btn-envoyer {
             background: linear-gradient(135deg, #1a3c5e, #f0a500);
             color: white;
             border: none;
@@ -73,127 +72,93 @@
             font-weight: 700;
             width: 100%;
             transition: all 0.3s;
-            margin-top: 10px;
         }
-        .btn-login:hover {
+        .btn-envoyer:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(240,165,0,0.4);
             color: white;
         }
-        .register-link {
+        .back-link {
             text-align: center;
             margin-top: 20px;
-            color: #6c757d;
-            font-size: 0.9rem;
         }
-        .register-link a {
-            color: #f0a500;
+        .back-link a {
+            color: #1a3c5e;
             font-weight: 600;
             text-decoration: none;
         }
-        .register-link a:hover { text-decoration: underline; }
-        .divider {
-            display: flex;
-            align-items: center;
-            margin: 20px 0;
-            color: #adb5bd;
-            font-size: 0.85rem;
+        .back-link a:hover {
+            color: #f0a500;
         }
-        .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid #e9ecef;
+        .icon-container {
+            text-align: center;
+            margin-bottom: 20px;
         }
-        .divider span { padding: 0 12px; }
+        .icon-container i {
+            font-size: 3rem;
+            color: #f0a500;
+        }
     </style>
 </head>
 <body>
-<div class="login-card">
+<div class="card">
 
-    <!-- Logo -->
     <div class="logo">Banka<span>GN</span></div>
     <div class="tagline">Votre banque numérique en Guinée</div>
 
-    <!-- Erreur Model -->
+    <div class="icon-container">
+        <i class="bi bi-shield-lock"></i>
+    </div>
+
+    <h5 class="text-center fw-bold mb-2" style="color:#1a3c5e;">
+        Mot de passe oublié ?
+    </h5>
+    <p class="text-center text-muted small mb-4">
+        Entrez votre email et nous vous enverrons
+        un lien pour réinitialiser votre mot de passe.
+    </p>
+
+    <!-- Alertes -->
+    <div th:if="${succes}"
+         class="alert alert-success rounded-3 mb-3"
+         style="font-size:0.9rem;"
+         th:text="${succes}">
+    </div>
     <div th:if="${erreur}"
          class="alert alert-danger rounded-3 mb-3"
          style="font-size:0.9rem;"
          th:text="${erreur}">
     </div>
 
-    <!-- Erreur Spring Security -->
-    <div th:if="${param.error != null}"
-         th:unless="${erreur}"
-         class="alert alert-danger rounded-3 mb-3"
-         style="font-size:0.9rem;">
-        ❌ Email ou mot de passe incorrect.
-        Veuillez vérifier vos identifiants et réessayer.
-    </div>
+    <form th:action="@{/auth/mot-de-passe-oublie}"
+          method="post">
 
-    <!-- Succès -->
-    <div th:if="${succes}"
-         class="alert alert-success rounded-3 mb-3"
-         style="font-size:0.9rem;"
-         th:text="${succes}">
-    </div>
-
-    <!-- Formulaire -->
-    <form th:action="@{/auth/login}" method="post">
-
-        <div class="mb-3">
+        <div class="mb-4">
             <label class="form-label">
-                <i class="bi bi-envelope me-1"></i> Email
+                <i class="bi bi-envelope me-1"></i>
+                Votre adresse email
             </label>
             <div class="input-group">
                 <span class="input-group-text">
                     <i class="bi bi-envelope"></i>
                 </span>
                 <input type="email"
-                       name="username"
+                       name="email"
                        class="form-control"
                        placeholder="votre@email.com"
                        required>
             </div>
         </div>
 
-        <div class="mb-3">
-            <label class="form-label">
-                <i class="bi bi-lock me-1"></i>
-                Mot de passe
-            </label>
-            <div class="input-group">
-                <span class="input-group-text">
-                    <i class="bi bi-lock"></i>
-                </span>
-                <input type="password"
-                       name="password"
-                       class="form-control"
-                       placeholder="••••••••"
-                       required>
-            </div>
-        </div>
-
-        <button type="submit" class="btn-login">
-            <i class="bi bi-box-arrow-in-right me-2"></i>
-            Se connecter
+        <button type="submit" class="btn-envoyer">
+            <i class="bi bi-send me-2"></i>
+            Envoyer le lien de réinitialisation
         </button>
-        <div class="text-center mt-3">
-            <a href="/auth/mot-de-passe-oublie"
-               style="color:#1a3c5e; font-size:0.9rem;">
-                <i class="bi bi-question-circle me-1"></i>
-                Mot de passe oublié ?
-            </a>
-        </div>
     </form>
 
-    <div class="divider">
-        <span>Pas encore de compte ?</span>
-    </div>
-
-    <div class="register-link">
-        <a href="/auth/register">
-            <i class="bi bi-person-plus me-1"></i>
-            S'inscrire sur BankaGN
+    <div class="back-link mt-3">
+        <a href="/auth/login">
+            <i class="bi bi-arrow-left me-1"></i>
+            Retour à la connexion
         </a>
     </div>
 </div>

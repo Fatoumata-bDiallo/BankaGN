@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +24,59 @@ public class TransactionService {
     private final AlerteFraudeRepository alerteFraudeRepository;
     private final JournalAuditRepository journalAuditRepository;
 
+    // Limites journalières
+    private static final BigDecimal LIMITE_MONTANT_JOUR =
+            new BigDecimal("10000000");
+    private static final int LIMITE_TRANSACTIONS_JOUR = 10;
+
+    // ===== VÉRIFICATION LIMITES =====
+    private void verifierLimites(Compte compte,
+                                 BigDecimal montant) {
+        LocalDateTime debutJour = LocalDate.now()
+                .atStartOfDay();
+        LocalDateTime finJour = debutJour.plusDays(1);
+
+        // Transactions du jour
+        List<Transaction> transactionsJour =
+                transactionRepository.findAll().stream()
+                        .filter(t -> t.getCompteSource() != null
+                                && t.getCompteSource().getId()
+                                .equals(compte.getId())
+                                && t.getDateTransaction() != null
+                                && t.getDateTransaction().isAfter(debutJour)
+                                && t.getDateTransaction().isBefore(finJour)
+                                && t.getStatut() ==
+                                Transaction.StatutTransaction.SUCCES)
+                        .toList();
+
+        // Vérifier nombre de transactions
+        if (transactionsJour.size() >= LIMITE_TRANSACTIONS_JOUR) {
+            throw new RuntimeException(
+                    "⚠️ Limite atteinte ! Vous avez effectué " +
+                            LIMITE_TRANSACTIONS_JOUR +
+                            " transactions aujourd'hui. " +
+                            "Limite journalière atteinte.");
+        }
+
+        // Vérifier montant total du jour
+        BigDecimal totalJour = transactionsJour.stream()
+                .map(Transaction::getMontant)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal nouveauTotal = totalJour.add(montant);
+        if (nouveauTotal.compareTo(LIMITE_MONTANT_JOUR) > 0) {
+            BigDecimal restant = LIMITE_MONTANT_JOUR
+                    .subtract(totalJour);
+            throw new RuntimeException(
+                    "⚠️ Limite journalière dépassée ! " +
+                            "Vous avez déjà transféré " + totalJour +
+                            " GNF aujourd'hui. " +
+                            "Il vous reste " + restant +
+                            " GNF disponibles pour aujourd'hui.");
+        }
+    }
+
+    // ===== DÉPÔT =====
     @Transactional
     public Transaction effectuerDepot(Long compteId,
                                       BigDecimal montant,
@@ -60,7 +114,6 @@ public class TransactionService {
                         + compte.getNumeroCompte(),
                 Notification.TypeNotification.DEPOT);
 
-        // Audit
         enregistrerAudit("Dépôt effectué",
                 "Dépôt de " + montant + " GNF sur "
                         + compte.getNumeroCompte(),
@@ -70,6 +123,7 @@ public class TransactionService {
         return transaction;
     }
 
+    // ===== RETRAIT =====
     @Transactional
     public Transaction effectuerRetrait(Long compteId,
                                         BigDecimal montant,
@@ -89,6 +143,9 @@ public class TransactionService {
         if (compte.getSolde().compareTo(montant) < 0) {
             throw new RuntimeException("Solde insuffisant !");
         }
+
+        // Vérifier limites journalières
+        verifierLimites(compte, montant);
 
         compte.setSolde(compte.getSolde().subtract(montant));
         compteRepository.save(compte);
@@ -111,7 +168,6 @@ public class TransactionService {
                         + compte.getNumeroCompte(),
                 Notification.TypeNotification.RETRAIT);
 
-        // Audit
         enregistrerAudit("Retrait effectué",
                 "Retrait de " + montant + " GNF sur "
                         + compte.getNumeroCompte(),
@@ -132,6 +188,7 @@ public class TransactionService {
         return transaction;
     }
 
+    // ===== TRANSFERT =====
     @Transactional
     public Transaction effectuerTransfert(
             Long compteSourceId,
@@ -149,8 +206,7 @@ public class TransactionService {
 
         if (compteSource.getStatut() !=
                 Compte.StatutCompte.ACTIF) {
-            throw new RuntimeException(
-                    "Compte source bloqué !");
+            throw new RuntimeException("Compte source bloqué !");
         }
 
         if (montant.compareTo(new BigDecimal("1000")) < 0) {
@@ -165,9 +221,11 @@ public class TransactionService {
         if (compteSource.getId().equals(
                 compteDestination.getId())) {
             throw new RuntimeException(
-                    "Impossible de transférer vers " +
-                            "le même compte !");
+                    "Impossible de transférer vers le même compte !");
         }
+
+        // Vérifier limites journalières
+        verifierLimites(compteSource, montant);
 
         compteSource.setSolde(
                 compteSource.getSolde().subtract(montant));
@@ -202,7 +260,6 @@ public class TransactionService {
                         + compteSource.getNumeroCompte(),
                 Notification.TypeNotification.TRANSFERT);
 
-        // Audit
         enregistrerAudit("Transfert effectué",
                 "Transfert de " + montant + " GNF vers "
                         + numeroDestination,
@@ -226,8 +283,8 @@ public class TransactionService {
         LocalDateTime uneHeure = LocalDateTime.now()
                 .minusHours(1);
 
-        long nbRetraits = transactionRepository
-                .findAll().stream()
+        long nbRetraits = transactionRepository.findAll()
+                .stream()
                 .filter(t -> t.getType() ==
                         Transaction.TypeTransaction.RETRAIT
                         && t.getCompteSource() != null
@@ -241,17 +298,15 @@ public class TransactionService {
         if (nbRetraits >= 3) {
             creerAlerteFraude(compte.getUtilisateur(),
                     "Retraits multiples suspects",
-                    nbRetraits + " retraits en moins d'1h " +
-                            "sur " + compte.getNumeroCompte(),
+                    nbRetraits + " retraits en moins d'1h sur "
+                            + compte.getNumeroCompte(),
                     AlerteFraude.NiveauAlerte.ELEVE);
         }
     }
 
-    private void creerAlerteFraude(
-            Utilisateur utilisateur,
-            String typeAlerte,
-            String description,
-            AlerteFraude.NiveauAlerte niveau) {
+    private void creerAlerteFraude(Utilisateur utilisateur,
+                                   String typeAlerte, String description,
+                                   AlerteFraude.NiveauAlerte niveau) {
 
         AlerteFraude alerte = AlerteFraude.builder()
                 .typeAlerte(typeAlerte)
@@ -263,8 +318,8 @@ public class TransactionService {
                 .build();
         alerteFraudeRepository.save(alerte);
 
-        Utilisateur admin = utilisateurRepository
-                .findAll().stream()
+        Utilisateur admin = utilisateurRepository.findAll()
+                .stream()
                 .filter(u -> u.getRole() ==
                         Utilisateur.Role.ADMIN)
                 .findFirst().orElse(null);
@@ -272,24 +327,20 @@ public class TransactionService {
         if (admin != null) {
             creerNotification(admin,
                     "🚨 Alerte Fraude - " + niveau,
-                    "Alerte : " + typeAlerte +
-                            " pour " + utilisateur.getPrenom() +
-                            " " + utilisateur.getNom(),
+                    "Alerte : " + typeAlerte + " pour "
+                            + utilisateur.getPrenom() + " "
+                            + utilisateur.getNom(),
                     Notification.TypeNotification.ALERTE);
         }
     }
 
-    private void enregistrerAudit(
-            String action,
-            String details,
-            String effectuePar,
-            JournalAudit.TypeAction typeAction) {
+    private void enregistrerAudit(String action,
+                                  String details, String effectuePar,
+                                  JournalAudit.TypeAction typeAction) {
         JournalAudit journal = JournalAudit.builder()
-                .action(action)
-                .details(details)
+                .action(action).details(details)
                 .effectuePar(effectuePar)
-                .typeAction(typeAction)
-                .build();
+                .typeAction(typeAction).build();
         journalAuditRepository.save(journal);
     }
 
@@ -330,18 +381,13 @@ public class TransactionService {
                 "-" + (new Random().nextInt(9000) + 1000);
     }
 
-    private void creerNotification(
-            Utilisateur utilisateur,
-            String titre,
-            String message,
-            Notification.TypeNotification type) {
+    private void creerNotification(Utilisateur utilisateur,
+                                   String titre, String message,
+                                   Notification.TypeNotification type) {
         Notification notification = Notification.builder()
-                .titre(titre)
-                .message(message)
-                .type(type)
-                .lu(false)
-                .utilisateur(utilisateur)
-                .build();
+                .titre(titre).message(message)
+                .type(type).lu(false)
+                .utilisateur(utilisateur).build();
         notificationRepository.save(notification);
     }
 }

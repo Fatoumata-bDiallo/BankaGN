@@ -54,6 +54,9 @@ public class Utilisateur {
     @OneToMany(mappedBy = "utilisateur",
             cascade = CascadeType.ALL)
     private List<Notification> notifications;
+    private String resetToken;
+
+    private LocalDateTime resetTokenExpiry;
 
     @PrePersist
     public void prePersist() {

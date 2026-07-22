@@ -9,6 +9,7 @@ import com.bankagn.bankagn.repository.JournalAuditRepository;
 import com.bankagn.bankagn.repository.NotificationRepository;
 import com.bankagn.bankagn.repository.UtilisateurRepository;
 import com.bankagn.bankagn.security.JwtUtil;
+import com.bankagn.bankagn.service.impl.EmailService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @Controller
 @RequestMapping("/auth")
@@ -33,6 +36,10 @@ public class AuthController {
     private final NotificationRepository notificationRepository;
     private final AlerteFraudeRepository alerteFraudeRepository;
     private final JournalAuditRepository journalAuditRepository;
+    private final EmailService emailService;
+
+    private static final String BASE_URL =
+            "https://bankagn-production.up.railway.app";
 
     @GetMapping("/login")
     public String loginPage() {
@@ -55,7 +62,6 @@ public class AuthController {
                 return "auth/login";
             }
 
-            // Vérifier statut EN_ATTENTE
             if (utilisateur.getStatut() ==
                     Utilisateur.Statut.EN_ATTENTE) {
                 model.addAttribute("erreur",
@@ -66,7 +72,6 @@ public class AuthController {
                 return "auth/login";
             }
 
-            // Vérifier statut BLOQUE
             if (utilisateur.getStatut() ==
                     Utilisateur.Statut.BLOQUE) {
                 model.addAttribute("erreur",
@@ -76,7 +81,6 @@ public class AuthController {
                 return "auth/login";
             }
 
-            // Vérifier statut INACTIF
             if (utilisateur.getStatut() ==
                     Utilisateur.Statut.INACTIF) {
                 model.addAttribute("erreur",
@@ -86,39 +90,30 @@ public class AuthController {
                 return "auth/login";
             }
 
-            // Authentifier
             try {
                 authenticationManager.authenticate(
                         new UsernamePasswordAuthenticationToken(
                                 email, motDePasse));
             } catch (DisabledException e) {
                 model.addAttribute("erreur",
-                        "⏳ Votre compte est en cours de vérification. " +
-                                "Vous ne pouvez pas vous connecter tant que " +
-                                "l'administrateur n'a pas validé votre inscription.");
+                        "⏳ Votre compte est en cours de vérification.");
                 return "auth/login";
             } catch (LockedException e) {
                 model.addAttribute("erreur",
                         "🔒 Votre compte a été suspendu suite à " +
-                                "plusieurs tentatives de connexion échouées. " +
-                                "Contactez l'administration BankaGN.");
+                                "plusieurs tentatives de connexion échouées.");
                 return "auth/login";
             } catch (Exception e) {
-                // Incrémenter tentatives échouées
                 utilisateur.setTentativesConnexion(
                         utilisateur.getTentativesConnexion() + 1);
                 utilisateurRepository.save(utilisateur);
 
-                // Audit tentative échouée
-                enregistrerAudit(
-                        "Tentative connexion échouée",
+                enregistrerAudit("Tentative connexion échouée",
                         "Tentative " +
                                 utilisateur.getTentativesConnexion() +
                                 "/5 pour " + email,
-                        email,
-                        JournalAudit.TypeAction.CONNEXION);
+                        email, JournalAudit.TypeAction.CONNEXION);
 
-                // Alerte après 3 tentatives
                 if (utilisateur.getTentativesConnexion() >= 3) {
                     creerAlerteFraude(utilisateur,
                             "Tentatives connexion suspectes",
@@ -127,7 +122,6 @@ public class AuthController {
                             AlerteFraude.NiveauAlerte.ELEVE);
                 }
 
-                // Blocage après 5 tentatives
                 if (utilisateur.getTentativesConnexion() >= 5) {
                     utilisateur.setStatut(
                             Utilisateur.Statut.BLOQUE);
@@ -158,18 +152,15 @@ public class AuthController {
                 return "auth/login";
             }
 
-            // Connexion réussie
             utilisateur.setTentativesConnexion(0);
             utilisateurRepository.save(utilisateur);
 
-            enregistrerAudit(
-                    "Connexion réussie",
+            enregistrerAudit("Connexion réussie",
                     utilisateur.getPrenom() + " " +
                             utilisateur.getNom() +
                             " connecté en tant que " +
                             utilisateur.getRole(),
-                    email,
-                    JournalAudit.TypeAction.CONNEXION);
+                    email, JournalAudit.TypeAction.CONNEXION);
 
             String token = jwtUtil.generateToken(
                     email, utilisateur.getRole().name());
@@ -215,6 +206,8 @@ public class AuthController {
             return "auth/register";
         }
 
+        String tokenConfirmation = UUID.randomUUID().toString();
+
         Utilisateur utilisateur = Utilisateur.builder()
                 .nom(nom)
                 .prenom(prenom)
@@ -223,20 +216,36 @@ public class AuthController {
                 .motDePasse(passwordEncoder.encode(motDePasse))
                 .role(Utilisateur.Role.CLIENT)
                 .statut(Utilisateur.Statut.EN_ATTENTE)
+                .resetToken(tokenConfirmation)
                 .build();
 
         utilisateurRepository.save(utilisateur);
 
-        enregistrerAudit(
-                "Nouvelle inscription",
-                prenom + " " + nom +
-                        " (" + email + ") inscrit",
-                email,
-                JournalAudit.TypeAction.UTILISATEUR);
+        // Lien Railway
+        String lienConfirmation = BASE_URL +
+                "/auth/confirmer-email/" + tokenConfirmation;
 
-        // Notifier l'admin
-        Utilisateur admin = utilisateurRepository
-                .findAll().stream()
+        String messageEmail =
+                "Bonjour " + prenom + " " + nom + ",\n\n" +
+                        "Bienvenue sur BankaGN — " +
+                        "Votre Banque Numérique en Guinée !\n\n" +
+                        "Votre inscription a bien été enregistrée.\n\n" +
+                        "Pour confirmer votre adresse email, " +
+                        "cliquez sur ce lien :\n" +
+                        lienConfirmation + "\n\n" +
+                        "Une fois votre email confirmé, votre compte " +
+                        "sera examiné par notre équipe et activé " +
+                        "dans les plus brefs délais.\n\n" +
+                        "Cordialement,\n" +
+                        "L'équipe BankaGN\n" +
+                        "contact@bankagn.com | +224 626 335 841";
+
+        emailService.envoyerEmail(email,
+                "✅ Confirmez votre inscription BankaGN",
+                messageEmail);
+
+        Utilisateur admin = utilisateurRepository.findAll()
+                .stream()
                 .filter(u -> u.getRole() ==
                         Utilisateur.Role.ADMIN)
                 .findFirst().orElse(null);
@@ -247,8 +256,61 @@ public class AuthController {
                     .message("Un nouveau client " +
                             prenom + " " + nom +
                             " (" + email + ") " +
-                            "vient de s'inscrire. " +
-                            "Veuillez valider son compte.")
+                            "vient de s'inscrire.")
+                    .type(Notification.TypeNotification.SYSTEME)
+                    .lu(false)
+                    .utilisateur(admin)
+                    .build();
+            notificationRepository.save(notification);
+        }
+
+        enregistrerAudit("Nouvelle inscription",
+                prenom + " " + nom +
+                        " (" + email + ") inscrit",
+                email, JournalAudit.TypeAction.UTILISATEUR);
+
+        model.addAttribute("succes",
+                "✅ Inscription réussie ! Un email de " +
+                        "confirmation a été envoyé sur " + email +
+                        ". Vérifiez votre boîte mail et confirmez " +
+                        "votre adresse avant que l'administrateur " +
+                        "valide votre compte.");
+        return "auth/login";
+    }
+
+    @GetMapping("/confirmer-email/{token}")
+    public String confirmerEmail(
+            @PathVariable String token,
+            Model model) {
+
+        Utilisateur utilisateur = utilisateurRepository
+                .findAll().stream()
+                .filter(u -> token.equals(u.getResetToken()))
+                .findFirst().orElse(null);
+
+        if (utilisateur == null) {
+            model.addAttribute("erreur",
+                    "❌ Lien de confirmation invalide !");
+            return "auth/login";
+        }
+
+        utilisateur.setResetToken(null);
+        utilisateurRepository.save(utilisateur);
+
+        Utilisateur admin = utilisateurRepository.findAll()
+                .stream()
+                .filter(u -> u.getRole() ==
+                        Utilisateur.Role.ADMIN)
+                .findFirst().orElse(null);
+
+        if (admin != null) {
+            Notification notification = Notification.builder()
+                    .titre("✅ Email confirmé !")
+                    .message(utilisateur.getPrenom() + " " +
+                            utilisateur.getNom() +
+                            " a confirmé son email. " +
+                            "Vous pouvez maintenant " +
+                            "valider son compte.")
                     .type(Notification.TypeNotification.SYSTEME)
                     .lu(false)
                     .utilisateur(admin)
@@ -257,11 +319,10 @@ public class AuthController {
         }
 
         model.addAttribute("succes",
-                "✅ Votre inscription a bien été enregistrée ! " +
-                        "Votre compte est en cours de vérification par " +
-                        "notre équipe. Vous recevrez une confirmation " +
-                        "dès que votre compte sera activé. " +
-                        "Merci de votre confiance en BankaGN !");
+                "✅ Votre email a été confirmé avec succès ! " +
+                        "Votre compte est en attente de validation " +
+                        "par l'administrateur. Vous serez notifié " +
+                        "dès l'activation.");
         return "auth/login";
     }
 
@@ -274,38 +335,30 @@ public class AuthController {
         return "redirect:/auth/login";
     }
 
-    private void enregistrerAudit(
-            String action,
-            String details,
-            String effectuePar,
-            JournalAudit.TypeAction typeAction) {
+    private void enregistrerAudit(String action,
+                                  String details, String effectuePar,
+                                  JournalAudit.TypeAction typeAction) {
         JournalAudit journal = JournalAudit.builder()
-                .action(action)
-                .details(details)
+                .action(action).details(details)
                 .effectuePar(effectuePar)
-                .typeAction(typeAction)
-                .build();
+                .typeAction(typeAction).build();
         journalAuditRepository.save(journal);
     }
 
-    private void creerAlerteFraude(
-            Utilisateur utilisateur,
-            String typeAlerte,
-            String description,
-            AlerteFraude.NiveauAlerte niveau) {
-
+    private void creerAlerteFraude(Utilisateur utilisateur,
+                                   String typeAlerte, String description,
+                                   AlerteFraude.NiveauAlerte niveau) {
         AlerteFraude alerte = AlerteFraude.builder()
                 .typeAlerte(typeAlerte)
                 .description(description)
                 .niveau(niveau)
                 .statut(AlerteFraude.StatutAlerteEnum.EN_COURS)
                 .resolu(false)
-                .utilisateur(utilisateur)
-                .build();
+                .utilisateur(utilisateur).build();
         alerteFraudeRepository.save(alerte);
 
-        Utilisateur admin = utilisateurRepository
-                .findAll().stream()
+        Utilisateur admin = utilisateurRepository.findAll()
+                .stream()
                 .filter(u -> u.getRole() ==
                         Utilisateur.Role.ADMIN)
                 .findFirst().orElse(null);
@@ -319,8 +372,7 @@ public class AuthController {
                             ". " + description)
                     .type(Notification.TypeNotification.ALERTE)
                     .lu(false)
-                    .utilisateur(admin)
-                    .build();
+                    .utilisateur(admin).build();
             notificationRepository.save(notification);
         }
     }
