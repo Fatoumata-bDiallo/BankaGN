@@ -1,29 +1,35 @@
 package com.bankagn.bankagn.service.impl;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
+import com.resend.services.emails.model.CreateEmailResponse;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    private final Resend resend;
+
+    public EmailService() {
+        this.resend = new Resend("re_MkYnzo4C_CcTPRM9NwoqBBqFZEhh65aSj");
+    }
 
     public void envoyerEmail(String destinataire,
                              String sujet,
                              String message) {
         try {
-            SimpleMailMessage email = new SimpleMailMessage();
-            email.setFrom("fatmabinta47@gmail.com");
-            email.setTo(destinataire);
-            email.setSubject(sujet);
-            email.setText(message);
-            mailSender.send(email);
-        } catch (Exception e) {
-            System.err.println("Erreur envoi email : "
-                    + e.getMessage());
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from("BankaGN <onboarding@resend.dev>")
+                    .to(destinataire)
+                    .subject(sujet)
+                    .text(message)
+                    .build();
+
+            CreateEmailResponse data = resend.emails().send(params);
+            System.out.println("✅ Email envoyé ! ID: " + data.getId());
+        } catch (ResendException e) {
+            System.err.println("❌ Erreur envoi email : " + e.getMessage());
         }
     }
 }
