@@ -47,6 +47,15 @@ public class Utilisateur {
 
     private LocalDateTime derniereConnexion;
 
+    private String resetToken;
+
+    private LocalDateTime resetTokenExpiry;
+
+    // Champs OTP pour double authentification
+    private String otpCode;
+
+    private LocalDateTime otpExpiry;
+
     @OneToMany(mappedBy = "utilisateur",
             cascade = CascadeType.ALL)
     private List<Compte> comptes;
@@ -54,9 +63,6 @@ public class Utilisateur {
     @OneToMany(mappedBy = "utilisateur",
             cascade = CascadeType.ALL)
     private List<Notification> notifications;
-    private String resetToken;
-
-    private LocalDateTime resetTokenExpiry;
 
     @PrePersist
     public void prePersist() {

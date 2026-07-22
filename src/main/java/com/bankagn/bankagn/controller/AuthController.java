@@ -12,6 +12,7 @@ import com.bankagn.bankagn.security.JwtUtil;
 import com.bankagn.bankagn.service.impl.EmailService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.DisabledException;
@@ -22,6 +23,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.Random;
 import java.util.UUID;
 
 @Controller
@@ -50,7 +53,7 @@ public class AuthController {
     public String login(
             @RequestParam String email,
             @RequestParam String motDePasse,
-            HttpServletResponse response,
+            HttpSession session,
             Model model) {
         try {
             Utilisateur utilisateur = utilisateurRepository
@@ -67,8 +70,7 @@ public class AuthController {
                 model.addAttribute("erreur",
                         "⏳ Votre compte est en cours de vérification. " +
                                 "Vous ne pouvez pas vous connecter tant que " +
-                                "l'administrateur n'a pas validé votre inscription. " +
-                                "Vous serez notifié dès l'activation de votre compte.");
+                                "l'administrateur n'a pas validé votre inscription.");
                 return "auth/login";
             }
 
@@ -76,17 +78,14 @@ public class AuthController {
                     Utilisateur.Statut.BLOQUE) {
                 model.addAttribute("erreur",
                         "🔒 Votre compte a été suspendu. " +
-                                "Veuillez contacter l'administration BankaGN " +
-                                "pour plus d'informations.");
+                                "Veuillez contacter l'administration BankaGN.");
                 return "auth/login";
             }
 
             if (utilisateur.getStatut() ==
                     Utilisateur.Statut.INACTIF) {
                 model.addAttribute("erreur",
-                        "❌ Votre demande d'inscription a été refusée. " +
-                                "Veuillez contacter l'administration BankaGN " +
-                                "pour plus d'informations.");
+                        "❌ Votre demande d'inscription a été refusée.");
                 return "auth/login";
             }
 
@@ -100,8 +99,7 @@ public class AuthController {
                 return "auth/login";
             } catch (LockedException e) {
                 model.addAttribute("erreur",
-                        "🔒 Votre compte a été suspendu suite à " +
-                                "plusieurs tentatives de connexion échouées.");
+                        "🔒 Votre compte a été suspendu.");
                 return "auth/login";
             } catch (Exception e) {
                 utilisateur.setTentativesConnexion(
@@ -136,9 +134,7 @@ public class AuthController {
 
                     model.addAttribute("erreur",
                             "🔒 Votre compte a été suspendu " +
-                                    "automatiquement après 5 tentatives " +
-                                    "de connexion incorrectes. " +
-                                    "Veuillez contacter l'administration BankaGN.");
+                                    "automatiquement après 5 tentatives.");
                     return "auth/login";
                 }
 
@@ -147,42 +143,134 @@ public class AuthController {
                 model.addAttribute("erreur",
                         "❌ Email ou mot de passe incorrect. " +
                                 "Il vous reste " + restantes +
-                                " tentative(s) avant la suspension " +
-                                "de votre compte.");
+                                " tentative(s).");
                 return "auth/login";
             }
 
+            // Identifiants corrects → Générer OTP
             utilisateur.setTentativesConnexion(0);
+
+            // Générer code OTP 6 chiffres
+            String otp = String.format("%06d",
+                    new Random().nextInt(999999));
+            utilisateur.setOtpCode(otp);
+            utilisateur.setOtpExpiry(
+                    LocalDateTime.now().plusMinutes(5));
             utilisateurRepository.save(utilisateur);
 
-            enregistrerAudit("Connexion réussie",
-                    utilisateur.getPrenom() + " " +
-                            utilisateur.getNom() +
-                            " connecté en tant que " +
-                            utilisateur.getRole(),
-                    email, JournalAudit.TypeAction.CONNEXION);
+            // Stocker email en session
+            session.setAttribute("otpEmail", email);
+            session.setAttribute("otpRole",
+                    utilisateur.getRole().name());
 
-            String token = jwtUtil.generateToken(
-                    email, utilisateur.getRole().name());
+            // Envoyer OTP par email
+            String messageOtp =
+                    "Bonjour " + utilisateur.getPrenom() + ",\n\n" +
+                            "Votre code de vérification BankaGN est :\n\n" +
+                            "╔══════════════╗\n" +
+                            "║   " + otp + "   ║\n" +
+                            "╚══════════════╝\n\n" +
+                            "Ce code est valable 5 minutes.\n\n" +
+                            "Si vous n'êtes pas à l'origine de cette " +
+                            "connexion, contactez immédiatement " +
+                            "l'administration BankaGN.\n\n" +
+                            "Cordialement,\n" +
+                            "L'équipe BankaGN";
 
-            Cookie cookie = new Cookie("jwt", token);
-            cookie.setHttpOnly(true);
-            cookie.setMaxAge(86400);
-            cookie.setPath("/");
-            response.addCookie(cookie);
+            emailService.envoyerEmail(email,
+                    "🔐 Code de vérification BankaGN - " + otp,
+                    messageOtp);
 
-            if (utilisateur.getRole() ==
-                    Utilisateur.Role.ADMIN) {
-                return "redirect:/admin/dashboard";
-            }
-            return "redirect:/client/dashboard";
+            // Rediriger vers page OTP
+            return "redirect:/auth/otp";
 
         } catch (Exception e) {
             model.addAttribute("erreur",
-                    "❌ Une erreur est survenue. " +
-                            "Veuillez réessayer.");
+                    "❌ Une erreur est survenue. Veuillez réessayer.");
             return "auth/login";
         }
+    }
+
+    // Page OTP
+    @GetMapping("/otp")
+    public String otpPage(HttpSession session, Model model) {
+        String otpEmail = (String) session.getAttribute("otpEmail");
+        if (otpEmail == null) {
+            return "redirect:/auth/login";
+        }
+        model.addAttribute("email", otpEmail);
+        return "auth/otp";
+    }
+
+    // Vérifier OTP
+    @PostMapping("/otp")
+    public String verifierOtp(
+            @RequestParam String code,
+            HttpSession session,
+            HttpServletResponse response,
+            Model model) {
+
+        String otpEmail = (String) session
+                .getAttribute("otpEmail");
+        String otpRole = (String) session
+                .getAttribute("otpRole");
+
+        if (otpEmail == null) {
+            return "redirect:/auth/login";
+        }
+
+        Utilisateur utilisateur = utilisateurRepository
+                .findByEmail(otpEmail).orElse(null);
+
+        if (utilisateur == null) {
+            return "redirect:/auth/login";
+        }
+
+        // Vérifier expiration
+        if (utilisateur.getOtpExpiry() == null ||
+                utilisateur.getOtpExpiry()
+                        .isBefore(LocalDateTime.now())) {
+            model.addAttribute("erreur",
+                    "❌ Code expiré ! Reconnectez-vous.");
+            model.addAttribute("email", otpEmail);
+            return "auth/otp";
+        }
+
+        // Vérifier code
+        if (!code.equals(utilisateur.getOtpCode())) {
+            model.addAttribute("erreur",
+                    "❌ Code incorrect ! Vérifiez votre email.");
+            model.addAttribute("email", otpEmail);
+            return "auth/otp";
+        }
+
+        // OTP valide → effacer et connecter
+        utilisateur.setOtpCode(null);
+        utilisateur.setOtpExpiry(null);
+        utilisateurRepository.save(utilisateur);
+
+        session.removeAttribute("otpEmail");
+        session.removeAttribute("otpRole");
+
+        enregistrerAudit("Connexion réussie avec 2FA",
+                utilisateur.getPrenom() + " " +
+                        utilisateur.getNom() + " connecté",
+                otpEmail, JournalAudit.TypeAction.CONNEXION);
+
+        String token = jwtUtil.generateToken(
+                otpEmail, utilisateur.getRole().name());
+
+        Cookie cookie = new Cookie("jwt", token);
+        cookie.setHttpOnly(true);
+        cookie.setMaxAge(86400);
+        cookie.setPath("/");
+        response.addCookie(cookie);
+
+        if (utilisateur.getRole() ==
+                Utilisateur.Role.ADMIN) {
+            return "redirect:/admin/dashboard";
+        }
+        return "redirect:/client/dashboard";
     }
 
     @GetMapping("/register")
@@ -221,24 +309,16 @@ public class AuthController {
 
         utilisateurRepository.save(utilisateur);
 
-        // Lien Railway
         String lienConfirmation = BASE_URL +
                 "/auth/confirmer-email/" + tokenConfirmation;
 
         String messageEmail =
                 "Bonjour " + prenom + " " + nom + ",\n\n" +
-                        "Bienvenue sur BankaGN — " +
-                        "Votre Banque Numérique en Guinée !\n\n" +
-                        "Votre inscription a bien été enregistrée.\n\n" +
-                        "Pour confirmer votre adresse email, " +
-                        "cliquez sur ce lien :\n" +
+                        "Bienvenue sur BankaGN !\n\n" +
+                        "Pour confirmer votre email, cliquez ici :\n" +
                         lienConfirmation + "\n\n" +
-                        "Une fois votre email confirmé, votre compte " +
-                        "sera examiné par notre équipe et activé " +
-                        "dans les plus brefs délais.\n\n" +
                         "Cordialement,\n" +
-                        "L'équipe BankaGN\n" +
-                        "contact@bankagn.com | +224 626 335 841";
+                        "L'équipe BankaGN";
 
         emailService.envoyerEmail(email,
                 "✅ Confirmez votre inscription BankaGN",
@@ -255,8 +335,7 @@ public class AuthController {
                     .titre("🆕 Nouvelle inscription !")
                     .message("Un nouveau client " +
                             prenom + " " + nom +
-                            " (" + email + ") " +
-                            "vient de s'inscrire.")
+                            " (" + email + ") vient de s'inscrire.")
                     .type(Notification.TypeNotification.SYSTEME)
                     .lu(false)
                     .utilisateur(admin)
@@ -271,10 +350,7 @@ public class AuthController {
 
         model.addAttribute("succes",
                 "✅ Inscription réussie ! Un email de " +
-                        "confirmation a été envoyé sur " + email +
-                        ". Vérifiez votre boîte mail et confirmez " +
-                        "votre adresse avant que l'administrateur " +
-                        "valide votre compte.");
+                        "confirmation a été envoyé sur " + email + ".");
         return "auth/login";
     }
 
@@ -308,9 +384,7 @@ public class AuthController {
                     .titre("✅ Email confirmé !")
                     .message(utilisateur.getPrenom() + " " +
                             utilisateur.getNom() +
-                            " a confirmé son email. " +
-                            "Vous pouvez maintenant " +
-                            "valider son compte.")
+                            " a confirmé son email.")
                     .type(Notification.TypeNotification.SYSTEME)
                     .lu(false)
                     .utilisateur(admin)
@@ -319,19 +393,19 @@ public class AuthController {
         }
 
         model.addAttribute("succes",
-                "✅ Votre email a été confirmé avec succès ! " +
-                        "Votre compte est en attente de validation " +
-                        "par l'administrateur. Vous serez notifié " +
-                        "dès l'activation.");
+                "✅ Email confirmé ! Votre compte est en " +
+                        "attente de validation par l'administrateur.");
         return "auth/login";
     }
 
     @GetMapping("/logout")
-    public String logout(HttpServletResponse response) {
+    public String logout(HttpServletResponse response,
+                         HttpSession session) {
         Cookie cookie = new Cookie("jwt", null);
         cookie.setMaxAge(0);
         cookie.setPath("/");
         response.addCookie(cookie);
+        session.invalidate();
         return "redirect:/auth/login";
     }
 
@@ -368,8 +442,7 @@ public class AuthController {
                     .titre("🚨 Alerte Fraude - " + niveau)
                     .message("Alerte : " + typeAlerte +
                             " pour " + utilisateur.getPrenom() +
-                            " " + utilisateur.getNom() +
-                            ". " + description)
+                            " " + utilisateur.getNom())
                     .type(Notification.TypeNotification.ALERTE)
                     .lu(false)
                     .utilisateur(admin).build();
