@@ -50,15 +50,8 @@ public class SecurityConfig {
                         .loginProcessingUrl("/auth/login")
                         .usernameParameter("username")
                         .passwordParameter("password")
-                        .successHandler((request, response, authentication) -> {
-                            String role = authentication.getAuthorities()
-                                    .iterator().next().getAuthority();
-                            if (role.equals("ROLE_ADMIN")) {
-                                response.sendRedirect("/admin/dashboard");
-                            } else {
-                                response.sendRedirect("/client/dashboard");
-                            }
-                        })
+                        .successHandler((request, response, authentication) ->
+                                response.sendRedirect("/auth/otp-redirect"))
                         .failureUrl("/auth/login?error")
                         .permitAll()
                 )
@@ -68,10 +61,8 @@ public class SecurityConfig {
                         .deleteCookies("JSESSIONID")
                         .permitAll()
                 )
-                .addFilterBefore(
-                        jwtAuthFilter,
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                .addFilterBefore(jwtAuthFilter,
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

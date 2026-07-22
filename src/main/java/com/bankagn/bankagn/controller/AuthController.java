@@ -11,19 +11,22 @@ import com.bankagn.bankagn.repository.UtilisateurRepository;
 import com.bankagn.bankagn.security.JwtUtil;
 import com.bankagn.bankagn.service.impl.EmailService;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.DisabledException;
-import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
@@ -32,7 +35,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
     private final UtilisateurRepository utilisateurRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
@@ -44,157 +46,62 @@ public class AuthController {
     private static final String BASE_URL =
             "https://bankagn-production.up.railway.app";
 
+    private final HttpSessionSecurityContextRepository
+            securityContextRepository =
+            new HttpSessionSecurityContextRepository();
+
     @GetMapping("/login")
     public String loginPage() {
         return "auth/login";
     }
 
-    @PostMapping("/login")
-    public String login(
-            @RequestParam String email,
-            @RequestParam String motDePasse,
+    // Redirect après login Spring Security → générer OTP
+    @GetMapping("/otp-redirect")
+    public String otpRedirect(
+            Authentication authentication,
             HttpSession session,
             Model model) {
-        try {
-            Utilisateur utilisateur = utilisateurRepository
-                    .findByEmail(email).orElse(null);
 
-            if (utilisateur == null) {
-                model.addAttribute("erreur",
-                        "❌ Aucun compte trouvé avec cet email.");
-                return "auth/login";
-            }
+        String email = authentication.getName();
+        Utilisateur utilisateur = utilisateurRepository
+                .findByEmail(email).orElse(null);
 
-            if (utilisateur.getStatut() ==
-                    Utilisateur.Statut.EN_ATTENTE) {
-                model.addAttribute("erreur",
-                        "⏳ Votre compte est en cours de vérification. " +
-                                "Vous ne pouvez pas vous connecter tant que " +
-                                "l'administrateur n'a pas validé votre inscription.");
-                return "auth/login";
-            }
-
-            if (utilisateur.getStatut() ==
-                    Utilisateur.Statut.BLOQUE) {
-                model.addAttribute("erreur",
-                        "🔒 Votre compte a été suspendu. " +
-                                "Veuillez contacter l'administration BankaGN.");
-                return "auth/login";
-            }
-
-            if (utilisateur.getStatut() ==
-                    Utilisateur.Statut.INACTIF) {
-                model.addAttribute("erreur",
-                        "❌ Votre demande d'inscription a été refusée.");
-                return "auth/login";
-            }
-
-            try {
-                authenticationManager.authenticate(
-                        new UsernamePasswordAuthenticationToken(
-                                email, motDePasse));
-            } catch (DisabledException e) {
-                model.addAttribute("erreur",
-                        "⏳ Votre compte est en cours de vérification.");
-                return "auth/login";
-            } catch (LockedException e) {
-                model.addAttribute("erreur",
-                        "🔒 Votre compte a été suspendu.");
-                return "auth/login";
-            } catch (Exception e) {
-                utilisateur.setTentativesConnexion(
-                        utilisateur.getTentativesConnexion() + 1);
-                utilisateurRepository.save(utilisateur);
-
-                enregistrerAudit("Tentative connexion échouée",
-                        "Tentative " +
-                                utilisateur.getTentativesConnexion() +
-                                "/5 pour " + email,
-                        email, JournalAudit.TypeAction.CONNEXION);
-
-                if (utilisateur.getTentativesConnexion() >= 3) {
-                    creerAlerteFraude(utilisateur,
-                            "Tentatives connexion suspectes",
-                            utilisateur.getTentativesConnexion() +
-                                    " tentatives échouées pour " + email,
-                            AlerteFraude.NiveauAlerte.ELEVE);
-                }
-
-                if (utilisateur.getTentativesConnexion() >= 5) {
-                    utilisateur.setStatut(
-                            Utilisateur.Statut.BLOQUE);
-                    utilisateurRepository.save(utilisateur);
-
-                    enregistrerAudit(
-                            "Compte bloqué automatiquement",
-                            "Compte " + email +
-                                    " bloqué après 5 tentatives",
-                            "SYSTEME",
-                            JournalAudit.TypeAction.UTILISATEUR);
-
-                    model.addAttribute("erreur",
-                            "🔒 Votre compte a été suspendu " +
-                                    "automatiquement après 5 tentatives.");
-                    return "auth/login";
-                }
-
-                int restantes = 5 -
-                        utilisateur.getTentativesConnexion();
-                model.addAttribute("erreur",
-                        "❌ Email ou mot de passe incorrect. " +
-                                "Il vous reste " + restantes +
-                                " tentative(s).");
-                return "auth/login";
-            }
-
-            // Identifiants corrects → Générer OTP
-            utilisateur.setTentativesConnexion(0);
-
-            // Générer code OTP 6 chiffres
-            String otp = String.format("%06d",
-                    new Random().nextInt(999999));
-            utilisateur.setOtpCode(otp);
-            utilisateur.setOtpExpiry(
-                    LocalDateTime.now().plusMinutes(5));
-            utilisateurRepository.save(utilisateur);
-
-            // Stocker email en session
-            session.setAttribute("otpEmail", email);
-            session.setAttribute("otpRole",
-                    utilisateur.getRole().name());
-
-            // Envoyer OTP par email
-            String messageOtp =
-                    "Bonjour " + utilisateur.getPrenom() + ",\n\n" +
-                            "Votre code de vérification BankaGN est :\n\n" +
-                            "╔══════════════╗\n" +
-                            "║   " + otp + "   ║\n" +
-                            "╚══════════════╝\n\n" +
-                            "Ce code est valable 5 minutes.\n\n" +
-                            "Si vous n'êtes pas à l'origine de cette " +
-                            "connexion, contactez immédiatement " +
-                            "l'administration BankaGN.\n\n" +
-                            "Cordialement,\n" +
-                            "L'équipe BankaGN";
-
-            emailService.envoyerEmail(email,
-                    "🔐 Code de vérification BankaGN - " + otp,
-                    messageOtp);
-
-            // Rediriger vers page OTP
-            return "redirect:/auth/otp";
-
-        } catch (Exception e) {
-            model.addAttribute("erreur",
-                    "❌ Une erreur est survenue. Veuillez réessayer.");
-            return "auth/login";
+        if (utilisateur == null) {
+            return "redirect:/auth/login";
         }
+
+        // Générer OTP
+        String otp = String.format("%06d",
+                new Random().nextInt(999999));
+        utilisateur.setOtpCode(otp);
+        utilisateur.setOtpExpiry(
+                LocalDateTime.now().plusMinutes(5));
+        utilisateurRepository.save(utilisateur);
+
+        session.setAttribute("otpEmail", email);
+
+        String messageOtp =
+                "Bonjour " + utilisateur.getPrenom() + ",\n\n" +
+                        "Votre code de vérification BankaGN est :\n\n" +
+                        "╔══════════════╗\n" +
+                        "║   " + otp + "   ║\n" +
+                        "╚══════════════╝\n\n" +
+                        "Ce code est valable 5 minutes.\n\n" +
+                        "Cordialement,\n" +
+                        "L'équipe BankaGN";
+
+        emailService.envoyerEmail(email,
+                "🔐 Code de vérification BankaGN - " + otp,
+                messageOtp);
+
+        model.addAttribute("email", email);
+        return "auth/otp";
     }
 
-    // Page OTP
     @GetMapping("/otp")
     public String otpPage(HttpSession session, Model model) {
-        String otpEmail = (String) session.getAttribute("otpEmail");
+        String otpEmail = (String) session
+                .getAttribute("otpEmail");
         if (otpEmail == null) {
             return "redirect:/auth/login";
         }
@@ -202,18 +109,16 @@ public class AuthController {
         return "auth/otp";
     }
 
-    // Vérifier OTP
     @PostMapping("/otp")
     public String verifierOtp(
             @RequestParam String code,
             HttpSession session,
+            HttpServletRequest request,
             HttpServletResponse response,
             Model model) {
 
         String otpEmail = (String) session
                 .getAttribute("otpEmail");
-        String otpRole = (String) session
-                .getAttribute("otpRole");
 
         if (otpEmail == null) {
             return "redirect:/auth/login";
@@ -226,7 +131,6 @@ public class AuthController {
             return "redirect:/auth/login";
         }
 
-        // Vérifier expiration
         if (utilisateur.getOtpExpiry() == null ||
                 utilisateur.getOtpExpiry()
                         .isBefore(LocalDateTime.now())) {
@@ -236,7 +140,6 @@ public class AuthController {
             return "auth/otp";
         }
 
-        // Vérifier code
         if (!code.equals(utilisateur.getOtpCode())) {
             model.addAttribute("erreur",
                     "❌ Code incorrect ! Vérifiez votre email.");
@@ -244,19 +147,35 @@ public class AuthController {
             return "auth/otp";
         }
 
-        // OTP valide → effacer et connecter
+        // OTP valide
         utilisateur.setOtpCode(null);
         utilisateur.setOtpExpiry(null);
         utilisateurRepository.save(utilisateur);
 
         session.removeAttribute("otpEmail");
-        session.removeAttribute("otpRole");
 
         enregistrerAudit("Connexion réussie avec 2FA",
                 utilisateur.getPrenom() + " " +
                         utilisateur.getNom() + " connecté",
                 otpEmail, JournalAudit.TypeAction.CONNEXION);
 
+        // Créer session Spring Security
+        UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(
+                        utilisateur.getEmail(),
+                        null,
+                        List.of(new SimpleGrantedAuthority(
+                                "ROLE_" + utilisateur.getRole().name()))
+                );
+
+        SecurityContextHolder.getContext()
+                .setAuthentication(authToken);
+
+        securityContextRepository.saveContext(
+                SecurityContextHolder.getContext(),
+                request, response);
+
+        // Cookie JWT
         String token = jwtUtil.generateToken(
                 otpEmail, utilisateur.getRole().name());
 
