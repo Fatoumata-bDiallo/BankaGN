@@ -37,6 +37,9 @@ public class Transaction {
 
     private LocalDateTime dateTransaction;
 
+    @Column(columnDefinition = "TEXT")
+    private String qrCode;
+
     @ManyToOne
     @JoinColumn(name = "compte_source_id")
     private Compte compteSource;

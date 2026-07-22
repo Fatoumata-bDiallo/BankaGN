@@ -2,14 +2,21 @@ package com.bankagn.bankagn.service.impl;
 
 import com.bankagn.bankagn.entity.*;
 import com.bankagn.bankagn.repository.*;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Random;
 
@@ -24,19 +31,54 @@ public class TransactionService {
     private final AlerteFraudeRepository alerteFraudeRepository;
     private final JournalAuditRepository journalAuditRepository;
 
-    // Limites journalières
     private static final BigDecimal LIMITE_MONTANT_JOUR =
             new BigDecimal("10000000");
     private static final int LIMITE_TRANSACTIONS_JOUR = 10;
 
+    // ===== GÉNÉRER QR CODE =====
+    private String genererQrCode(Transaction transaction) {
+        try {
+            StringBuilder content = new StringBuilder();
+            content.append("=== RECU BANKAGN ===\n");
+            content.append("Ref : ").append(transaction.getReference()).append("\n");
+            content.append("Type : ").append(transaction.getType()).append("\n");
+            content.append("Montant : ").append(transaction.getMontant()).append(" GNF\n");
+            content.append("Statut : ").append(transaction.getStatut()).append("\n");
+            content.append("Date : ").append(LocalDateTime.now()
+                    .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))).append("\n");
+            if (transaction.getCompteSource() != null) {
+                content.append("De : ").append(
+                        transaction.getCompteSource()
+                                .getNumeroCompte()).append("\n");
+            }
+            if (transaction.getCompteDestination() != null) {
+                content.append("Vers : ").append(
+                        transaction.getCompteDestination()
+                                .getNumeroCompte()).append("\n");
+            }
+            content.append("=== BANKAGN 2026 ===");
+
+            QRCodeWriter qrCodeWriter = new QRCodeWriter();
+            BitMatrix bitMatrix = qrCodeWriter.encode(
+                    content.toString(),
+                    BarcodeFormat.QR_CODE, 200, 200);
+            ByteArrayOutputStream pngOutputStream =
+                    new ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(
+                    bitMatrix, "PNG", pngOutputStream);
+            return Base64.getEncoder().encodeToString(
+                    pngOutputStream.toByteArray());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     // ===== VÉRIFICATION LIMITES =====
     private void verifierLimites(Compte compte,
                                  BigDecimal montant) {
-        LocalDateTime debutJour = LocalDate.now()
-                .atStartOfDay();
+        LocalDateTime debutJour = LocalDate.now().atStartOfDay();
         LocalDateTime finJour = debutJour.plusDays(1);
 
-        // Transactions du jour
         List<Transaction> transactionsJour =
                 transactionRepository.findAll().stream()
                         .filter(t -> t.getCompteSource() != null
@@ -49,7 +91,6 @@ public class TransactionService {
                                 Transaction.StatutTransaction.SUCCES)
                         .toList();
 
-        // Vérifier nombre de transactions
         if (transactionsJour.size() >= LIMITE_TRANSACTIONS_JOUR) {
             throw new RuntimeException(
                     "⚠️ Limite atteinte ! Vous avez effectué " +
@@ -58,7 +99,6 @@ public class TransactionService {
                             "Limite journalière atteinte.");
         }
 
-        // Vérifier montant total du jour
         BigDecimal totalJour = transactionsJour.stream()
                 .map(Transaction::getMontant)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -106,6 +146,8 @@ public class TransactionService {
                 .compteDestination(compte)
                 .build();
 
+        // Générer QR Code
+        transaction.setQrCode(genererQrCode(transaction));
         transactionRepository.save(transaction);
 
         creerNotification(compte.getUtilisateur(),
@@ -144,7 +186,6 @@ public class TransactionService {
             throw new RuntimeException("Solde insuffisant !");
         }
 
-        // Vérifier limites journalières
         verifierLimites(compte, montant);
 
         compte.setSolde(compte.getSolde().subtract(montant));
@@ -160,6 +201,8 @@ public class TransactionService {
                 .compteSource(compte)
                 .build();
 
+        // Générer QR Code
+        transaction.setQrCode(genererQrCode(transaction));
         transactionRepository.save(transaction);
 
         creerNotification(compte.getUtilisateur(),
@@ -174,7 +217,6 @@ public class TransactionService {
                 compte.getUtilisateur().getEmail(),
                 JournalAudit.TypeAction.TRANSACTION);
 
-        // Détection fraude
         if (montant.compareTo(new BigDecimal("5000000")) > 0) {
             creerAlerteFraude(compte.getUtilisateur(),
                     "Retrait suspect",
@@ -224,7 +266,6 @@ public class TransactionService {
                     "Impossible de transférer vers le même compte !");
         }
 
-        // Vérifier limites journalières
         verifierLimites(compteSource, montant);
 
         compteSource.setSolde(
@@ -246,6 +287,8 @@ public class TransactionService {
                 .compteDestination(compteDestination)
                 .build();
 
+        // Générer QR Code
+        transaction.setQrCode(genererQrCode(transaction));
         transactionRepository.save(transaction);
 
         creerNotification(compteSource.getUtilisateur(),
@@ -266,9 +309,7 @@ public class TransactionService {
                 compteSource.getUtilisateur().getEmail(),
                 JournalAudit.TypeAction.TRANSACTION);
 
-        // Détection fraude
-        if (montant.compareTo(
-                new BigDecimal("10000000")) > 0) {
+        if (montant.compareTo(new BigDecimal("10000000")) > 0) {
             creerAlerteFraude(compteSource.getUtilisateur(),
                     "Transfert suspect",
                     "Transfert inhabituel de " + montant +
@@ -307,7 +348,6 @@ public class TransactionService {
     private void creerAlerteFraude(Utilisateur utilisateur,
                                    String typeAlerte, String description,
                                    AlerteFraude.NiveauAlerte niveau) {
-
         AlerteFraude alerte = AlerteFraude.builder()
                 .typeAlerte(typeAlerte)
                 .description(description)
