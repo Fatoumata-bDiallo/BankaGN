@@ -10,122 +10,159 @@
     <style>
         body { background: #f0f4f8; }
         .sidebar {
-            width: 260px;
-            height: 100vh;
+            width: 260px; height: 100vh;
             background: linear-gradient(180deg, #0d2137 0%, #1a3c5e 100%);
-            position: fixed;
-            top: 0; left: 0;
-            padding: 20px 0;
-            z-index: 100;
-            overflow-y: auto;
+            position: fixed; top: 0; left: 0;
+            padding: 20px 0; z-index: 100; overflow-y: auto;
         }
         .sidebar .logo {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: white;
-            text-align: center;
-            padding: 20px;
+            font-size: 1.8rem; font-weight: 800; color: white;
+            text-align: center; padding: 20px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
         }
         .sidebar .logo span { color: #f0a500; }
         .sidebar .badge-admin {
-            background: #f0a500;
-            color: white;
-            font-size: 0.7rem;
-            padding: 3px 8px;
-            border-radius: 10px;
-            margin-left: 8px;
+            background: #f0a500; color: white;
+            font-size: 0.7rem; padding: 3px 8px;
+            border-radius: 10px; margin-left: 8px;
         }
         .sidebar .nav-link {
-            color: rgba(255,255,255,0.7);
-            padding: 8px 25px;
-            transition: all 0.3s;
-            font-size: 0.85rem;
+            color: rgba(255,255,255,0.7); padding: 8px 25px;
+            transition: all 0.3s; font-size: 0.85rem;
         }
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            color: white;
-            background: rgba(240,165,0,0.2);
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: white; background: rgba(240,165,0,0.2);
             border-left: 3px solid #f0a500;
         }
         .sidebar .nav-link i { width: 25px; margin-right: 10px; }
         .main-content { margin-left: 260px; padding: 30px; }
         .topbar {
-            background: white;
-            border-radius: 15px;
-            padding: 15px 25px;
-            margin-bottom: 25px;
+            background: white; border-radius: 15px;
+            padding: 15px 25px; margin-bottom: 25px;
             box-shadow: 0 2px 15px rgba(0,0,0,0.05);
-            display: flex;
-            justify-content: space-between;
+            display: flex; justify-content: space-between;
             align-items: center;
         }
-        .card { border: none; border-radius: 15px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.05); }
-        .stat-mini {
-            border-radius: 15px;
-            padding: 20px;
-            color: white;
-            text-align: center;
-            margin-bottom: 15px;
+        .card {
+            border: none; border-radius: 15px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
         }
-        .section-title {
-            color: #1a3c5e;
-            font-weight: 700;
-            font-size: 1.1rem;
-            border-left: 4px solid #f0a500;
-            padding-left: 12px;
-            margin-bottom: 20px;
+        .stat-card {
+            border-radius: 15px; padding: 25px; color: white;
         }
-        .btn-periode {
-            border-radius: 10px;
-            padding: 8px 20px;
-            font-weight: 600;
-            border: 2px solid #1a3c5e;
-            color: #1a3c5e;
-            background: white;
-            transition: all 0.3s;
-            text-decoration: none;
+        .stat-card .stat-value { font-size: 2rem; font-weight: 800; }
+        .stat-card .stat-label { font-size: 0.85rem; opacity: 0.85; }
+        .vol-card {
+            border-radius: 15px; padding: 20px;
+            border-left: 5px solid;
         }
-        .btn-periode:hover,
-        .btn-periode.active {
-            background: #1a3c5e;
-            color: white;
+
+        /* STYLES IMPRESSION */
+        @media print {
+            .sidebar, .topbar, .no-print { display: none !important; }
+            .main-content { margin-left: 0 !important; padding: 0 !important; }
+            body { background: white !important; }
+
+            /* EN-TÊTE BANKAGN */
+            .print-header {
+                display: flex !important;
+                justify-content: space-between;
+                align-items: center;
+                background: #1a3c5e !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                color: white !important;
+                padding: 20px 30px;
+                margin-bottom: 20px;
+            }
+            .print-logo {
+                font-size: 2rem;
+                font-weight: 900;
+                color: white !important;
+            }
+            .print-logo span { color: #f0a500 !important; }
+            .print-title {
+                font-size: 1rem;
+                color: #f0a500 !important;
+                font-weight: bold;
+                text-align: right;
+            }
+            .print-date {
+                font-size: 0.8rem;
+                color: #8fb0cc !important;
+                text-align: right;
+            }
+
+            /* GOLD LINE */
+            .print-gold-line {
+                display: block !important;
+                background: #f0a500 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                height: 3px;
+                margin-bottom: 20px;
+            }
+
+            /* STATISTIQUES */
+            .stat-card {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                border-radius: 10px !important;
+                padding: 15px !important;
+                break-inside: avoid;
+            }
+
+            /* VOLUMES */
+            .vol-card {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                break-inside: avoid;
+            }
+
+            /* GRAPHIQUES */
+            canvas { max-width: 100% !important; }
+
+            /* PIED DE PAGE */
+            .print-footer {
+                display: flex !important;
+                justify-content: space-between;
+                align-items: center;
+                background: #1a3c5e !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                color: white !important;
+                padding: 15px 30px;
+                margin-top: 30px;
+                font-size: 0.8rem;
+            }
         }
-        .kpi-card {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
-            border-top: 4px solid #1a3c5e;
-            text-align: center;
+
+        /* CACHER PAR DÉFAUT */
+        .print-header, .print-gold-line, .print-footer {
+            display: none;
         }
-        .kpi-value {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #1a3c5e;
-        }
-        .kpi-label {
-            color: #6c757d;
-            font-size: 0.85rem;
-        }
-        .btn-print {
-            background: linear-gradient(135deg, #1a3c5e, #f0a500);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 10px 20px;
-            font-weight: 600;
-        }
-        .btn-print:hover { color: white; }
     </style>
 </head>
 <body>
 
-<!-- Sidebar -->
+<!-- EN-TÊTE IMPRESSION -->
+<div class="print-header">
+    <div>
+        <div class="print-logo">Banka<span>GN</span></div>
+        <div style="color:#8fb0cc; font-size:0.85rem;">
+            Votre Banque Numérique en Guinée
+        </div>
+    </div>
+    <div>
+        <div class="print-title">RAPPORT BANCAIRE OFFICIEL</div>
+        <div class="print-date" id="printDate"></div>
+        <div class="print-date">Kaloum, Conakry, Guinée</div>
+    </div>
+</div>
+<div class="print-gold-line"></div>
+
 <div class="sidebar">
-    <div class="logo">
-        Banka<span>GN</span>
+    <div class="logo">Banka<span>GN</span>
         <span class="badge-admin">ADMIN</span>
     </div>
     <nav class="mt-3">
@@ -145,15 +182,13 @@
             <i class="bi bi-cash-coin"></i> Prêts
         </a>
         <a href="/admin/fraudes" class="nav-link">
-            <i class="bi bi-shield-exclamation"></i>
-            Alertes Fraude
+            <i class="bi bi-shield-exclamation"></i> Alertes Fraude
         </a>
         <a href="/admin/audit" class="nav-link">
             <i class="bi bi-journal-text"></i> Journal Audit
         </a>
         <a href="/admin/devises" class="nav-link">
-            <i class="bi bi-currency-exchange"></i>
-            Taux Devises
+            <i class="bi bi-currency-exchange"></i> Taux Devises
         </a>
         <a href="/admin/rapports" class="nav-link active">
             <i class="bi bi-bar-chart-line"></i> Rapports
@@ -165,274 +200,206 @@
     </nav>
 </div>
 
-<!-- Main Content -->
 <div class="main-content">
-
-    <div class="topbar">
+    <div class="topbar no-print">
         <div>
             <h5 class="mb-0 fw-bold" style="color:#1a3c5e;">
-                📊 Rapports & Statistiques
+                📊 Rapport Bancaire Officiel
             </h5>
             <small class="text-muted">
-                Synthèse complète de l'activité BankaGN
+                Vue d'ensemble de l'activité BankaGN
             </small>
         </div>
-        <div class="d-flex gap-2">
-            <button class="btn-print"
-                    onclick="window.print()">
-                <i class="bi bi-printer me-1"></i>
-                Imprimer
-            </button>
+        <button onclick="window.print()"
+                class="btn btn-primary rounded-pill px-4">
+            <i class="bi bi-printer me-2"></i>
+            Imprimer / Télécharger PDF
+        </button>
+    </div>
+
+    <!-- Résumé exécutif -->
+    <div class="card mb-4 p-4"
+         style="background:linear-gradient(135deg,#1a3c5e,#2d6a9f); color:white;">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h4 class="fw-bold mb-1">
+                    Rapport Bancaire BankaGN
+                </h4>
+                <p class="mb-0 opacity-75">
+                    Synthèse générale des activités bancaires
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div style="color:#f0a500; font-weight:bold;">
+                    DOCUMENT OFFICIEL
+                </div>
+                <small class="opacity-75" id="dateAffichage"></small>
+            </div>
         </div>
     </div>
 
-    <!-- Filtres période -->
-    <div class="card p-3 mb-4">
-        <div class="d-flex gap-3 align-items-center">
-            <span class="fw-bold" style="color:#1a3c5e;">
-                📅 Période :
-            </span>
-            <a href="/admin/rapports?periode=jour"
-               th:class="${periode == 'jour'} ?
-               'btn-periode active' : 'btn-periode'">
-                Aujourd'hui
-            </a>
-            <a href="/admin/rapports?periode=semaine"
-               th:class="${periode == 'semaine'} ?
-               'btn-periode active' : 'btn-periode'">
-                Cette semaine
-            </a>
-            <a href="/admin/rapports?periode=mois"
-               th:class="${periode == 'mois'} ?
-               'btn-periode active' : 'btn-periode'">
-                Ce mois
-            </a>
-            <a href="/admin/rapports?periode=annee"
-               th:class="${periode == 'annee'} ?
-               'btn-periode active' : 'btn-periode'">
-                Cette année
-            </a>
-        </div>
-    </div>
-
-    <!-- KPI principaux -->
-    <div class="row g-3 mb-4">
+    <!-- Stats Cards -->
+    <div class="row g-4 mb-4">
         <div class="col-md-3">
-            <div class="kpi-card"
-                 style="border-top-color: #1a3c5e;">
-                <div class="kpi-value"
+            <div class="stat-card"
+                 style="background:linear-gradient(135deg,#1a3c5e,#2d6a9f);">
+                <div class="stat-value"
                      th:text="${totalClients}">0</div>
-                <div class="kpi-label">Total Clients</div>
-                <div class="mt-2">
-                    <span class="badge bg-success"
-                          th:text="${clientsActifs}
-                          + ' actifs'"></span>
-                    <span class="badge bg-warning text-dark ms-1"
-                          th:text="${clientsEnAttente}
-                          + ' en attente'"></span>
-                </div>
+                <div class="stat-label">👥 Total Clients</div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="kpi-card"
-                 style="border-top-color: #f0a500;">
-                <div class="kpi-value"
+            <div class="stat-card"
+                 style="background:linear-gradient(135deg,#16a34a,#15803d);">
+                <div class="stat-value"
+                     th:text="${clientsActifs}">0</div>
+                <div class="stat-label">✅ Clients Actifs</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card"
+                 style="background:linear-gradient(135deg,#f0a500,#d97706);">
+                <div class="stat-value"
                      th:text="${totalComptes}">0</div>
-                <div class="kpi-label">Total Comptes</div>
-                <div class="mt-2">
-                    <span class="badge bg-primary"
-                          th:text="${comptesCourants}
-                          + ' courants'"></span>
-                    <span class="badge bg-success ms-1"
-                          th:text="${comptesEpargne}
-                          + ' épargne'"></span>
-                </div>
+                <div class="stat-label">🏦 Total Comptes</div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="kpi-card"
-                 style="border-top-color: #28a745;">
-                <div class="kpi-value"
+            <div class="stat-card"
+                 style="background:linear-gradient(135deg,#7c3aed,#6d28d9);">
+                <div class="stat-value"
                      th:text="${totalTransactions}">0</div>
-                <div class="kpi-label">Transactions</div>
-                <div class="mt-2 small text-muted"
-                     th:text="'Période : ' + ${periode}">
-                </div>
+                <div class="stat-label">💸 Transactions</div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="kpi-card"
-                 style="border-top-color: #dc3545;">
-                <div class="kpi-value"
-                     th:text="${totalFraudes}">0</div>
-                <div class="kpi-label">Alertes Fraude</div>
-                <div class="mt-2">
-                    <span class="badge bg-success"
-                          th:text="${fraudesResolues}
-                          + ' résolues'"></span>
+    </div>
+
+    <!-- Volumes Financiers -->
+    <div class="card mb-4 p-4">
+        <h6 class="fw-bold mb-3" style="color:#1a3c5e;">
+            💰 Volumes Financiers
+        </h6>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="vol-card"
+                     style="background:#dcfce7; border-color:#16a34a;">
+                    <div class="text-success fw-bold fs-5"
+                         th:text="${totalDepots} + ' GNF'"></div>
+                    <div class="text-muted small">Total Dépôts</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="vol-card"
+                     style="background:#fee2e2; border-color:#dc2626;">
+                    <div class="text-danger fw-bold fs-5"
+                         th:text="${totalRetraits} + ' GNF'"></div>
+                    <div class="text-muted small">Total Retraits</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="vol-card"
+                     style="background:#dbeafe; border-color:#2563eb;">
+                    <div class="text-primary fw-bold fs-5"
+                         th:text="${totalTransferts} + ' GNF'"></div>
+                    <div class="text-muted small">Total Transferts</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="vol-card"
+                     style="background:#fef3c7; border-color:#f0a500;">
+                    <div class="fw-bold fs-5"
+                         style="color:#1a3c5e;"
+                         th:text="${totalSoldes} + ' GNF'"></div>
+                    <div class="text-muted small">Total Soldes</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row g-4">
-
-        <!-- Rapport Transactions -->
+    <!-- Graphiques -->
+    <div class="row g-4 mb-4">
         <div class="col-md-6">
             <div class="card p-4">
-                <div class="section-title">
-                    💰 Rapport des Transactions
-                </div>
-                <div class="row g-3">
-                    <div class="col-6">
-                        <div class="stat-mini"
-                             style="background:linear-gradient(
-                             135deg, #28a745, #1e7e34);">
-                            <i class="bi bi-arrow-down-circle
-                               fs-3 mb-2 d-block"></i>
-                            <div class="fw-bold">Dépôts</div>
-                            <div class="fs-5 fw-bold"
-                                 th:text="${#numbers.formatDecimal(
-                                 totalDepots, 0, 'COMMA', 0,
-                                 'POINT')} + ' GNF'">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="stat-mini"
-                             style="background:linear-gradient(
-                             135deg, #dc3545, #a71d2a);">
-                            <i class="bi bi-arrow-up-circle
-                               fs-3 mb-2 d-block"></i>
-                            <div class="fw-bold">Retraits</div>
-                            <div class="fs-5 fw-bold"
-                                 th:text="${#numbers.formatDecimal(
-                                 totalRetraits, 0, 'COMMA', 0,
-                                 'POINT')} + ' GNF'">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="stat-mini"
-                             style="background:linear-gradient(
-                             135deg, #1a3c5e, #2d6a9f);">
-                            <i class="bi bi-arrow-left-right
-                               fs-3 mb-2 d-block"></i>
-                            <div class="fw-bold">Transferts</div>
-                            <div class="fs-5 fw-bold"
-                                 th:text="${#numbers.formatDecimal(
-                                 totalTransferts, 0, 'COMMA', 0,
-                                 'POINT')} + ' GNF'">
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <h6 class="fw-bold mb-3" style="color:#1a3c5e;">
+                    📊 Répartition des Transactions
+                </h6>
+                <canvas id="transactionChart" height="250"></canvas>
             </div>
         </div>
-
-        <!-- Rapport Prêts -->
         <div class="col-md-6">
             <div class="card p-4">
-                <div class="section-title">
-                    💳 Rapport des Prêts
-                </div>
-                <div class="row g-3">
-                    <div class="col-4">
-                        <div class="text-center p-3 rounded-3"
-                             style="background:#e8f5e9;">
-                            <div class="fw-bold fs-4
-                                        text-success"
-                                 th:text="${pretsAcceptes}">
-                            </div>
-                            <div class="small text-muted">
-                                Acceptés
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="text-center p-3 rounded-3"
-                             style="background:#fdecea;">
-                            <div class="fw-bold fs-4
-                                        text-danger"
-                                 th:text="${pretsRefuses}">
-                            </div>
-                            <div class="small text-muted">
-                                Refusés
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="text-center p-3 rounded-3"
-                             style="background:#fff3cd;">
-                            <div class="fw-bold fs-4
-                                        text-warning"
-                                 th:text="${pretsEnAttente}">
-                            </div>
-                            <div class="small text-muted">
-                                En attente
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="p-3 rounded-3 text-center"
-                             style="background:#e3f2fd;">
-                            <div class="text-muted small">
-                                Montant total accordé
-                            </div>
-                            <div class="fw-bold fs-4
-                                        text-primary"
-                                 th:text="${#numbers.formatDecimal(
-                                 montantPrets, 0, 'COMMA', 0,
-                                 'POINT')} + ' GNF'">
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <h6 class="fw-bold mb-3" style="color:#1a3c5e;">
+                    👥 Statut des Clients
+                </h6>
+                <canvas id="clientChart" height="250"></canvas>
             </div>
         </div>
+    </div>
 
-        <!-- Graphique transactions -->
-        <div class="col-md-8">
-            <div class="card p-4">
-                <div class="section-title">
-                    📈 Répartition des Transactions
-                </div>
-                <canvas id="chartTx" height="120"></canvas>
-            </div>
-        </div>
-
-        <!-- Graphique comptes -->
-        <div class="col-md-4">
-            <div class="card p-4">
-                <div class="section-title">
-                    🥧 Types de Comptes
-                </div>
-                <canvas id="chartComptes"
-                        height="200"></canvas>
-            </div>
-        </div>
+    <!-- Mention légale -->
+    <div class="card p-3"
+         style="background:#f8fafc; border-left: 4px solid #1a3c5e;">
+        <small class="text-muted">
+            <strong>DOCUMENT CONFIDENTIEL</strong> —
+            Ce rapport bancaire est établi par BankaGN et destiné
+            exclusivement à l'usage interne de l'administration.
+            Toute reproduction non autorisée est interdite.
+            © BankaGN 2026 — ODC-Guinée — Conakry, Guinée
+        </small>
     </div>
 </div>
 
+<!-- PIED DE PAGE IMPRESSION -->
+<div class="print-footer">
+    <div>BankaGN — Kaloum, Conakry, Guinée</div>
+    <div>contact@bankagn.com | +224 626 335 841</div>
+    <div>© BankaGN 2026</div>
+</div>
+
 <script th:inline="javascript">
-    // Graphique transactions
-    const ctx1 = document.getElementById('chartTx');
-    new Chart(ctx1, {
-        type: 'bar',
+    /*<![CDATA[*/
+    const dep = /*[[${totalDepots}]]*/ 0;
+    const ret = /*[[${totalRetraits}]]*/ 0;
+    const tra = /*[[${totalTransferts}]]*/ 0;
+    const cli = /*[[${totalClients}]]*/ 0;
+    const act = /*[[${clientsActifs}]]*/ 0;
+    /*]]>*/
+
+    // Date
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-FR', {
+        day: '2-digit', month: 'long', year: 'numeric'
+    });
+    document.getElementById('dateAffichage').textContent =
+        'Généré le ' + dateStr;
+    document.getElementById('printDate').textContent =
+        'Généré le ' + dateStr;
+
+    new Chart(document.getElementById('transactionChart'), {
+        type: 'doughnut',
         data: {
             labels: ['Dépôts', 'Retraits', 'Transferts'],
             datasets: [{
-                label: 'Montant (GNF)',
-                data: [
-                    [[${totalDepots}]],
-                    [[${totalRetraits}]],
-                    [[${totalTransferts}]]
-                ],
-                backgroundColor: [
-                    'rgba(40, 167, 69, 0.8)',
-                    'rgba(220, 53, 69, 0.8)',
-                    'rgba(26, 60, 94, 0.8)'
-                ],
+                data: [dep, ret, tra],
+                backgroundColor: ['#16a34a', '#dc2626', '#2563eb'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('clientChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Total', 'Actifs', 'En attente'],
+            datasets: [{
+                data: [cli, act, cli - act],
+                backgroundColor: ['#1a3c5e', '#16a34a', '#f0a500'],
                 borderRadius: 8
             }]
         },
@@ -440,35 +407,12 @@
             responsive: true,
             plugins: { legend: { display: false } },
             scales: {
-                y: { beginAtZero: true,
-                    grid: { color: '#f0f0f0' } },
-                x: { grid: { display: false } }
+                y: { beginAtZero: true }
             }
         }
     });
-
-    // Graphique comptes
-    const ctx2 = document.getElementById('chartComptes');
-    new Chart(ctx2, {
-        type: 'doughnut',
-        data: {
-            labels: ['Courant', 'Épargne'],
-            datasets: [{
-                data: [
-                    [[${comptesCourants}]],
-                    [[${comptesEpargne}]]
-                ],
-                backgroundColor: ['#1a3c5e', '#f0a500'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { position: 'bottom' } },
-            cutout: '70%'
-        }
-    });
 </script>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
