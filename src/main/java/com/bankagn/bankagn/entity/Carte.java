@@ -1,5 +1,6 @@
 package com.bankagn.bankagn.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -39,6 +40,7 @@ public class Carte {
 
     private LocalDateTime dateCreation;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "compte_id", nullable = false)
     private Compte compte;

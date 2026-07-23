@@ -1,5 +1,6 @@
 package com.bankagn.bankagn.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -41,18 +42,22 @@ public class Compte {
 
     private LocalDateTime dateCreation;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "utilisateur_id", nullable = false)
     private Utilisateur utilisateur;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "compteSource",
             cascade = CascadeType.ALL)
     private List<Transaction> transactionsSource;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "compteDestination",
             cascade = CascadeType.ALL)
     private List<Transaction> transactionsDestination;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "compte",
             cascade = CascadeType.ALL)
     private List<Carte> cartes;

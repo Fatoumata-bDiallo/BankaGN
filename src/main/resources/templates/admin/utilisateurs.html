@@ -76,8 +76,7 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg,
-            #1a3c5e, #f0a500);
+            background: linear-gradient(135deg, #1a3c5e, #f0a500);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -86,8 +85,7 @@
             font-size: 0.9rem;
         }
         .en-attente-banner {
-            background: linear-gradient(135deg,
-            #fff3cd, #ffeaa7);
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
             border: 2px solid #f0a500;
             border-radius: 15px;
             padding: 15px 20px;
@@ -96,6 +94,16 @@
             align-items: center;
             gap: 15px;
         }
+        .piece-thumb {
+            width: 45px;
+            height: 45px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid #e9ecef;
+            transition: transform 0.2s;
+        }
+        .piece-thumb:hover { transform: scale(1.1); }
     </style>
 </head>
 <body>
@@ -188,8 +196,8 @@
                 inscription(s) en attente de validation !
             </div>
             <small class="text-muted">
-                Vérifiez et validez les nouveaux clients
-                ci-dessous — ils apparaissent en jaune.
+                Vérifiez les pièces d'identité et
+                validez les nouveaux clients ci-dessous.
             </small>
         </div>
     </div>
@@ -203,7 +211,8 @@
                     <th>Client</th>
                     <th>Email</th>
                     <th>Téléphone</th>
-                    <th>Date inscription</th>
+                    <th>Pièce KYC</th>
+                    <th>Date</th>
                     <th>Statut</th>
                     <th>Actions</th>
                 </tr>
@@ -236,6 +245,48 @@
                     <td th:text="${u.email}"></td>
                     <td th:text="${u.telephone}"></td>
                     <td>
+                        <!-- Image -->
+                        <div th:if="${u.pieceIdentite != null
+                                 and !u.pieceIdentite
+                                 .contains('pdf')}">
+                            <img th:src="'data:'
+                                     + ${u.pieceIdentite}"
+                                 class="piece-thumb"
+                                 th:attr="data-bs-toggle=
+                                     'modal',
+                                     data-bs-target='#pieceModal',
+                                     onclick='showPiece(this)'"
+                                 title="Voir la pièce"/>
+                            <div class="small text-muted mt-1"
+                                 th:text="${u.typePiece}">
+                            </div>
+                        </div>
+                        <!-- PDF -->
+                        <div th:if="${u.pieceIdentite != null
+                                 and u.pieceIdentite
+                                 .contains('pdf')}">
+                            <a th:href="'data:'
+                                   + ${u.pieceIdentite}"
+                               target="_blank"
+                               class="btn btn-sm
+                                          btn-outline-danger">
+                                <i class="bi bi-file-pdf
+                                       me-1"></i>
+                                Voir PDF
+                            </a>
+                            <div class="small text-muted mt-1"
+                                 th:text="${u.typePiece}">
+                            </div>
+                        </div>
+                        <!-- Pas de pièce -->
+                        <div th:if="${u.pieceIdentite == null}">
+                                <span class="badge bg-warning
+                                             text-dark">
+                                    ⚠️ Non fournie
+                                </span>
+                        </div>
+                    </td>
+                    <td>
                         <small th:text="${#temporals.format(
                                 u.dateCreation,
                                 'dd/MM/yyyy HH:mm')}">
@@ -257,19 +308,16 @@
                     </td>
                     <td>
                         <div class="d-flex gap-2">
-
-                            <!-- Valider -->
                             <a th:if="${u.statut.name()
                                    == 'EN_ATTENTE'}"
                                th:href="@{/admin/utilisateurs/valider/{id}(id=${u.id})}"
                                class="btn btn-sm btn-success"
                                onclick="return confirm(
-                                   'Valider le compte de cet utilisateur ?')">
+                                   'Valider le compte ?')">
                                 <i class="bi bi-check-circle
-                                       me-1"></i> Valider
+                                       me-1"></i>
+                                Valider
                             </a>
-
-                            <!-- Refuser -->
                             <a th:if="${u.statut.name()
                                    == 'EN_ATTENTE'}"
                                th:href="@{/admin/utilisateurs/refuser/{id}(id=${u.id})}"
@@ -277,10 +325,9 @@
                                onclick="return confirm(
                                    'Refuser cette inscription ?')">
                                 <i class="bi bi-x-circle
-                                       me-1"></i> Refuser
+                                       me-1"></i>
+                                Refuser
                             </a>
-
-                            <!-- Bloquer -->
                             <a th:if="${u.statut.name()
                                    == 'ACTIF'}"
                                th:href="@{/admin/utilisateurs/bloquer/{id}(id=${u.id})}"
@@ -289,8 +336,6 @@
                                    'Bloquer cet utilisateur ?')">
                                 <i class="bi bi-lock"></i>
                             </a>
-
-                            <!-- Débloquer -->
                             <a th:if="${u.statut.name()
                                    == 'BLOQUE'}"
                                th:href="@{/admin/utilisateurs/debloquer/{id}(id=${u.id})}"
@@ -306,6 +351,36 @@
     </div>
 </div>
 
+<!-- Modal Pièce -->
+<div class="modal fade" id="pieceModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold"
+                    style="color:#1a3c5e;">
+                    🪪 Pièce d'identité
+                </h5>
+                <button type="button" class="btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <img id="pieceModalImg"
+                     src=""
+                     style="max-width:100%;
+                            border-radius:10px;
+                            box-shadow:0 5px 20px
+                            rgba(0,0,0,0.1);"/>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showPiece(img) {
+        document.getElementById('pieceModalImg').src = img.src;
+    }
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

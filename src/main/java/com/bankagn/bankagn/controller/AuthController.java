@@ -24,8 +24,10 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -55,7 +57,6 @@ public class AuthController {
         return "auth/login";
     }
 
-    // Redirect après login Spring Security → générer OTP
     @GetMapping("/otp-redirect")
     public String otpRedirect(
             Authentication authentication,
@@ -70,7 +71,6 @@ public class AuthController {
             return "redirect:/auth/login";
         }
 
-        // Générer OTP
         String otp = String.format("%06d",
                 new Random().nextInt(999999));
         utilisateur.setOtpCode(otp);
@@ -147,7 +147,6 @@ public class AuthController {
             return "auth/otp";
         }
 
-        // OTP valide
         utilisateur.setOtpCode(null);
         utilisateur.setOtpExpiry(null);
         utilisateurRepository.save(utilisateur);
@@ -159,13 +158,13 @@ public class AuthController {
                         utilisateur.getNom() + " connecté",
                 otpEmail, JournalAudit.TypeAction.CONNEXION);
 
-        // Créer session Spring Security
         UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(
                         utilisateur.getEmail(),
                         null,
                         List.of(new SimpleGrantedAuthority(
-                                "ROLE_" + utilisateur.getRole().name()))
+                                "ROLE_" + utilisateur.getRole()
+                                        .name()))
                 );
 
         SecurityContextHolder.getContext()
@@ -175,7 +174,6 @@ public class AuthController {
                 SecurityContextHolder.getContext(),
                 request, response);
 
-        // Cookie JWT
         String token = jwtUtil.generateToken(
                 otpEmail, utilisateur.getRole().name());
 
@@ -205,6 +203,11 @@ public class AuthController {
             @RequestParam String email,
             @RequestParam String telephone,
             @RequestParam String motDePasse,
+            @RequestParam(value = "typePiece",
+                    required = false) String typePiece,
+            @RequestParam(value = "pieceIdentite",
+                    required = false)
+            MultipartFile pieceIdentite,
             Model model) {
 
         if (utilisateurRepository.existsByEmail(email)) {
@@ -215,6 +218,34 @@ public class AuthController {
 
         String tokenConfirmation = UUID.randomUUID().toString();
 
+        // Traiter la pièce d'identité
+        String pieceBase64 = null;
+        if (pieceIdentite != null &&
+                !pieceIdentite.isEmpty()) {
+            try {
+                if (pieceIdentite.getSize() >
+                        5 * 1024 * 1024) {
+                    model.addAttribute("erreur",
+                            "⚠️ La pièce ne doit pas " +
+                                    "dépasser 5MB !");
+                    return "auth/register";
+                }
+                String contentType =
+                        pieceIdentite.getContentType();
+                if (contentType == null) {
+                    contentType = "image/jpeg";
+                }
+                pieceBase64 = contentType +
+                        ";base64," +
+                        Base64.getEncoder()
+                                .encodeToString(
+                                        pieceIdentite.getBytes());
+            } catch (Exception e) {
+                System.err.println("Erreur upload : "
+                        + e.getMessage());
+            }
+        }
+
         Utilisateur utilisateur = Utilisateur.builder()
                 .nom(nom)
                 .prenom(prenom)
@@ -224,6 +255,8 @@ public class AuthController {
                 .role(Utilisateur.Role.CLIENT)
                 .statut(Utilisateur.Statut.EN_ATTENTE)
                 .resetToken(tokenConfirmation)
+                .typePiece(typePiece)
+                .pieceIdentite(pieceBase64)
                 .build();
 
         utilisateurRepository.save(utilisateur);
@@ -254,7 +287,10 @@ public class AuthController {
                     .titre("🆕 Nouvelle inscription !")
                     .message("Un nouveau client " +
                             prenom + " " + nom +
-                            " (" + email + ") vient de s'inscrire.")
+                            " (" + email + ") vient de s'inscrire." +
+                            (pieceBase64 != null ?
+                                    " Pièce : " + typePiece :
+                                    " ⚠️ Sans pièce d'identité"))
                     .type(Notification.TypeNotification.SYSTEME)
                     .lu(false)
                     .utilisateur(admin)

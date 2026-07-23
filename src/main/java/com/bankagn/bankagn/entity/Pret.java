@@ -1,5 +1,6 @@
 package com.bankagn.bankagn.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -44,10 +45,12 @@ public class Pret {
 
     private LocalDateTime dateDecision;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "utilisateur_id", nullable = false)
     private Utilisateur utilisateur;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "compte_id")
     private Compte compte;

@@ -1,5 +1,6 @@
 package com.bankagn.bankagn.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -40,10 +41,12 @@ public class Transaction {
     @Column(columnDefinition = "TEXT")
     private String qrCode;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "compte_source_id")
     private Compte compteSource;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "compte_destination_id")
     private Compte compteDestination;

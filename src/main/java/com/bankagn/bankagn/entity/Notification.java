@@ -1,5 +1,6 @@
 package com.bankagn.bankagn.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -29,6 +30,7 @@ public class Notification {
 
     private LocalDateTime dateCreation;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "utilisateur_id", nullable = false)
     private Utilisateur utilisateur;

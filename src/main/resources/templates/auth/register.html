@@ -8,154 +8,301 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body {
-            background-image:
-                    linear-gradient(135deg,
-                    rgba(26, 60, 94, 0.88) 0%,
-                    rgba(13, 33, 55, 0.92) 100%),
-                    url('https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1920&q=80');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
+            background: linear-gradient(135deg, #1a3c5e 0%, #0d2137 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
-            padding: 30px 0;
+            justify-content: center;
+            padding: 20px 0;
         }
-        .card {
-            border: none;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        .register-card {
+            background: white;
+            border-radius: 25px;
+            padding: 40px;
+            width: 100%;
+            max-width: 520px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
         }
-        .btn-primary {
-            background: linear-gradient(135deg, #1a3c5e, #f0a500);
-            border: none;
-            border-radius: 10px;
-            padding: 12px;
-            font-weight: 600;
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #1a3c5e;
+            text-align: center;
+            margin-bottom: 5px;
         }
-        .form-control {
-            border-radius: 10px;
+        .logo span { color: #f0a500; }
+        .tagline {
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
+        .form-control, .form-select {
+            border-radius: 12px;
             padding: 12px 15px;
             border: 2px solid #e9ecef;
+            font-size: 0.95rem;
         }
-        .form-control:focus {
+        .form-control:focus, .form-select:focus {
             border-color: #1a3c5e;
             box-shadow: none;
         }
-        .logo-text {
-            font-size: 2rem;
-            font-weight: 800;
+        .form-label {
+            font-weight: 600;
+            color: #1a3c5e;
+            margin-bottom: 6px;
+        }
+        .input-group-text {
+            border-radius: 12px 0 0 12px;
+            border: 2px solid #e9ecef;
+            border-right: none;
+            background: #f8f9fa;
             color: #1a3c5e;
         }
-        .logo-text span {
-            color: #f0a500;
+        .input-group .form-control {
+            border-radius: 0 12px 12px 0;
+            border-left: none;
         }
+        .input-group .form-select {
+            border-radius: 0 12px 12px 0;
+            border-left: none;
+        }
+        .btn-register {
+            background: linear-gradient(135deg, #1a3c5e, #f0a500);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 700;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        .btn-register:hover {
+            transform: translateY(-2px);
+            color: white;
+        }
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .login-link a {
+            color: #f0a500;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .upload-zone {
+            border: 2px dashed #1a3c5e;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-zone:hover {
+            background: #e8f0f8;
+            border-color: #f0a500;
+        }
+        .upload-zone i {
+            font-size: 2rem;
+            color: #1a3c5e;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .section-divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+            color: #adb5bd;
+            font-size: 0.85rem;
+        }
+        .section-divider::before,
+        .section-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .section-divider span { padding: 0 12px; }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card p-5">
+<div class="register-card">
 
-                <!-- Logo -->
-                <div class="text-center mb-4">
-                    <div class="logo-text">
-                        Banka<span>GN</span>
-                    </div>
-                    <p class="text-muted mt-2">
-                        Créer votre compte bancaire
-                    </p>
+    <div class="logo">Banka<span>GN</span></div>
+    <div class="tagline">Créez votre compte bancaire numérique</div>
+
+    <!-- Alertes -->
+    <div th:if="${erreur}"
+         class="alert alert-danger rounded-3 mb-3"
+         style="font-size:0.9rem;"
+         th:text="${erreur}">
+    </div>
+    <div th:if="${succes}"
+         class="alert alert-success rounded-3 mb-3"
+         style="font-size:0.9rem;"
+         th:text="${succes}">
+    </div>
+
+    <form th:action="@{/auth/register}"
+          method="post"
+          enctype="multipart/form-data">
+
+        <!-- Informations personnelles -->
+        <div class="section-divider">
+            <span>👤 Informations personnelles</span>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-6">
+                <label class="form-label">Nom</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-person"></i>
+                    </span>
+                    <input type="text" name="nom"
+                           class="form-control"
+                           placeholder="Diallo"
+                           required>
                 </div>
-
-                <!-- Alerte erreur -->
-                <div th:if="${erreur}"
-                     class="alert alert-danger rounded-3"
-                     th:text="${erreur}">
+            </div>
+            <div class="col-6">
+                <label class="form-label">Prénom</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-person"></i>
+                    </span>
+                    <input type="text" name="prenom"
+                           class="form-control"
+                           placeholder="Mamadou"
+                           required>
                 </div>
-
-                <!-- Formulaire -->
-                <form th:action="@{/auth/register}" method="post">
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-person me-1"></i>Nom
-                            </label>
-                            <input type="text"
-                                   name="nom"
-                                   class="form-control"
-                                   placeholder="Diallo"
-                                   required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-person me-1"></i>Prénom
-                            </label>
-                            <input type="text"
-                                   name="prenom"
-                                   class="form-control"
-                                   placeholder="Fatoumata"
-                                   required>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-envelope me-1"></i>Email
-                        </label>
-                        <input type="email"
-                               name="email"
-                               class="form-control"
-                               placeholder="votre@email.com"
-                               required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-phone me-1"></i>Téléphone
-                        </label>
-                        <input type="text"
-                               name="telephone"
-                               class="form-control"
-                               placeholder="224XXXXXXXXX"
-                               required>
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-lock me-1"></i>
-                            Mot de passe
-                        </label>
-                        <input type="password"
-                               name="motDePasse"
-                               class="form-control"
-                               placeholder="••••••••"
-                               required>
-                    </div>
-
-                    <button type="submit"
-                            class="btn btn-primary w-100 mb-3">
-                        <i class="bi bi-person-plus me-2"></i>
-                        Créer mon compte
-                    </button>
-
-                    <div class="text-center">
-                        <span class="text-muted">
-                            Déjà un compte ?
-                        </span>
-                        <a th:href="@{/auth/login}"
-                           class="text-decoration-none fw-semibold"
-                           style="color: #1a3c5e;">
-                            Se connecter
-                        </a>
-                    </div>
-
-                </form>
             </div>
         </div>
+
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <div class="input-group">
+                <span class="input-group-text">
+                    <i class="bi bi-envelope"></i>
+                </span>
+                <input type="email" name="email"
+                       class="form-control"
+                       placeholder="votre@email.com"
+                       required>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Téléphone</label>
+            <div class="input-group">
+                <span class="input-group-text">
+                    <i class="bi bi-phone"></i>
+                </span>
+                <input type="text" name="telephone"
+                       class="form-control"
+                       placeholder="624 000 000"
+                       required>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Mot de passe</label>
+            <div class="input-group">
+                <span class="input-group-text">
+                    <i class="bi bi-lock"></i>
+                </span>
+                <input type="password" name="motDePasse"
+                       class="form-control"
+                       placeholder="Minimum 6 caractères"
+                       minlength="6"
+                       required>
+            </div>
+        </div>
+
+        <!-- Pièce d'identité -->
+        <div class="section-divider">
+            <span>🪪 Pièce d'identité (KYC)</span>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">
+                Type de pièce
+            </label>
+            <div class="input-group">
+                <span class="input-group-text">
+                    <i class="bi bi-card-list"></i>
+                </span>
+                <select name="typePiece" class="form-select">
+                    <option value="CNI">
+                        Carte Nationale d'Identité
+                    </option>
+                    <option value="PASSEPORT">
+                        Passeport
+                    </option>
+                    <option value="PERMIS">
+                        Permis de conduire
+                    </option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label">
+                Télécharger votre pièce d'identité
+            </label>
+            <div class="upload-zone"
+                 onclick="document.getElementById('pieceFile').click()">
+                <i class="bi bi-cloud-upload"></i>
+                <div class="fw-bold" style="color:#1a3c5e;">
+                    Cliquez pour uploader
+                </div>
+                <small class="text-muted">
+                    JPG, PNG ou PDF — Max 5MB
+                </small>
+                <div id="fileName" class="mt-2 text-success
+                                          small fw-bold">
+                </div>
+            </div>
+            <input type="file"
+                   id="pieceFile"
+                   name="pieceIdentite"
+                   accept=".jpg,.jpeg,.png,.pdf"
+                   style="display:none;"
+                   onchange="showFileName(this)">
+        </div>
+
+        <div class="alert alert-info rounded-3 mb-4"
+             style="font-size:0.85rem;">
+            <i class="bi bi-shield-check me-1"></i>
+            Votre pièce sera vérifiée par notre équipe
+            avant l'activation de votre compte.
+            <strong>Confidentialité garantie.</strong>
+        </div>
+
+        <button type="submit" class="btn-register">
+            <i class="bi bi-person-plus me-2"></i>
+            Créer mon compte BankaGN
+        </button>
+    </form>
+
+    <div class="login-link">
+        Déjà un compte ?
+        <a href="/auth/login">Se connecter</a>
     </div>
 </div>
+
+<script>
+    function showFileName(input) {
+        const fileName = input.files[0]?.name;
+        if (fileName) {
+            document.getElementById('fileName').textContent =
+                '✅ ' + fileName + ' sélectionné';
+        }
+    }
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
