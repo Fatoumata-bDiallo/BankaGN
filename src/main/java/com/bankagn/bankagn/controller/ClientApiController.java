@@ -1,6 +1,5 @@
 package com.bankagn.bankagn.controller;
 
-import com.bankagn.bankagn.dto.ApiResponse;
 import com.bankagn.bankagn.dto.DashboardResponse;
 import com.bankagn.bankagn.entity.Compte;
 import com.bankagn.bankagn.entity.Transaction;
@@ -10,14 +9,14 @@ import com.bankagn.bankagn.repository.UtilisateurRepository;
 import com.bankagn.bankagn.service.impl.CompteService;
 import com.bankagn.bankagn.service.impl.TransactionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/client")
@@ -30,7 +29,7 @@ public class ClientApiController {
     private final NotificationRepository notificationRepository;
 
     @GetMapping("/dashboard")
-    public ResponseEntity<ApiResponse<DashboardResponse>> dashboard(
+    public ResponseEntity<DashboardResponse> dashboard(
             Authentication authentication) {
 
         String email = authentication.getName();
@@ -61,13 +60,33 @@ public class ClientApiController {
 
         DashboardResponse response = new DashboardResponse(
                 utilisateur.getPrenom(),
+                utilisateur.getNom(),
+                notificationsNonLues,
+                comptes,
                 soldeTotal,
                 soldeCourant,
                 soldeEpargne,
-                notificationsNonLues,
                 transactions
         );
 
-        return ResponseEntity.ok(ApiResponse.ok("OK", response));
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/comptes/creer")
+    public ResponseEntity<Map<String, String>> creerCompte(
+            @RequestBody Map<String, String> body,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        String type = body.get("type");
+
+        try {
+            compteService.creerCompte(email, type);
+            return ResponseEntity.ok(
+                    Map.of("message", "Compte " + type + " créé avec succès !"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
+        }
     }
 }
