@@ -24,9 +24,10 @@ public class Utilisateur {
     @Column(nullable = false)
     private String prenom;
 
+
     @Column(unique = true, nullable = false)
     private String email;
-
+    @JsonIgnore
     @Column(nullable = false)
     private String motDePasse;
 
@@ -53,12 +54,15 @@ public class Utilisateur {
 
     private LocalDateTime derniereConnexion;
 
+    @JsonIgnore
     private String resetToken;
 
     private LocalDateTime resetTokenExpiry;
 
+    @JsonIgnore
     private String otpCode;
 
+    @JsonIgnore
     private LocalDateTime otpExpiry;
 
     @JsonIgnore
