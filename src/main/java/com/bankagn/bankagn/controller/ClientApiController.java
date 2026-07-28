@@ -1,4 +1,6 @@
 package com.bankagn.bankagn.controller;
+import com.bankagn.bankagn.dto.DepotRetraitRequest;
+import com.bankagn.bankagn.dto.TransfertRequest;
 
 import com.bankagn.bankagn.dto.DashboardResponse;
 import com.bankagn.bankagn.entity.Compte;
@@ -89,4 +91,53 @@ public class ClientApiController {
                     .body(Map.of("message", e.getMessage()));
         }
     }
+    @PostMapping("/depot")
+    public ResponseEntity<Map<String, String>> depot(
+            @RequestBody DepotRetraitRequest request) {
+        try {
+            transactionService.effectuerDepot(
+                    request.getCompteId(),
+                    request.getMontant(),
+                    request.getDescription());
+            return ResponseEntity.ok(
+                    Map.of("message", "Dépôt effectué avec succès !"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/retrait")
+    public ResponseEntity<Map<String, String>> retrait(
+            @RequestBody DepotRetraitRequest request) {
+        try {
+            transactionService.effectuerRetrait(
+                    request.getCompteId(),
+                    request.getMontant(),
+                    request.getDescription());
+            return ResponseEntity.ok(
+                    Map.of("message", "Retrait effectué avec succès !"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/transfert")
+    public ResponseEntity<Map<String, String>> transfert(
+            @RequestBody TransfertRequest request) {
+        try {
+            transactionService.effectuerTransfert(
+                    request.getCompteSourceId(),
+                    request.getNumeroDestination(),
+                    request.getMontant(),
+                    request.getDescription());
+            return ResponseEntity.ok(
+                    Map.of("message", "Transfert effectué avec succès !"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
 }
