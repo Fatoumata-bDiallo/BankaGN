@@ -1,31 +1,52 @@
 package com.bankagn.bankagn.service.impl;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 @Service
-@RequiredArgsConstructor
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    private static final String API_KEY =
+            System.getenv("BREVO_API_KEY");
 
-    @Async
     public void envoyerEmail(String destinataire,
                              String sujet,
                              String message) {
         try {
-            SimpleMailMessage email = new SimpleMailMessage();
-            email.setFrom("fatmabinta47@gmail.com");
-            email.setTo(destinataire);
-            email.setSubject(sujet);
-            email.setText(message);
-            mailSender.send(email);
-            System.out.println("✅ Email envoyé à : " + destinataire);
+            String body = "{"
+                    + "\"sender\":{\"email\":\"fatmabinta47@gmail.com\","
+                    + "\"name\":\"BankaGN\"},"
+                    + "\"to\":[{\"email\":\"" + destinataire + "\"}],"
+                    + "\"subject\":\"" + sujet + "\","
+                    + "\"textContent\":\"" + message
+                    .replace("\\", "")
+                    .replace("\"", "'")
+                    .replace("\n", " ")
+                    .replace("\r", " ") + "\""
+                    + "}";
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(
+                            "https://api.brevo.com/v3/smtp/email"))
+                    .header("accept", "application/json")
+                    .header("api-key", API_KEY)
+                    .header("content-type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+
+            HttpResponse<String> response =
+                    HttpClient.newHttpClient()
+                            .send(request,
+                                    HttpResponse.BodyHandlers.ofString());
+
+            System.out.println("✅ Email envoyé ! Status: "
+                    + response.statusCode());
+
         } catch (Exception e) {
-            System.err.println("❌ Erreur envoi email : "
+            System.err.println("❌ Erreur : "
                     + e.getMessage());
         }
     }
