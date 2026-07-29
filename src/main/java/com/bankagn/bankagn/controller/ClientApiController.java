@@ -10,7 +10,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import java.math.BigDecimal;
-
+import com.bankagn.bankagn.entity.Beneficiaire;
+import com.bankagn.bankagn.entity.Notification;
+import com.bankagn.bankagn.entity.TauxDevise;
+import com.bankagn.bankagn.repository.BeneficiaireRepository;
+import com.bankagn.bankagn.repository.CompteRepository;
+import com.bankagn.bankagn.repository.TauxDeviseRepository;
 import com.bankagn.bankagn.dto.DashboardResponse;
 import com.bankagn.bankagn.entity.Compte;
 import com.bankagn.bankagn.entity.Transaction;
@@ -42,6 +47,9 @@ public class ClientApiController {
     private final CarteService carteService;
     private final ReleveService releveService;
     private final PasswordEncoder passwordEncoder;
+    private final BeneficiaireRepository beneficiaireRepository;
+    private final CompteRepository compteRepository;
+    private final TauxDeviseRepository tauxDeviseRepository;
 
     @GetMapping("/dashboard")
     public ResponseEntity<DashboardResponse> dashboard(
@@ -249,6 +257,71 @@ public class ClientApiController {
 
         return ResponseEntity.ok(
                 Map.of("success", true, "message", "Mot de passe modifié !"));
+    }
+    @GetMapping("/beneficiaires")
+    public ResponseEntity<List<Beneficiaire>> beneficiaires(
+            Authentication authentication) {
+        Utilisateur utilisateur = utilisateurRepository
+                .findByEmail(authentication.getName()).orElseThrow();
+        return ResponseEntity.ok(
+                beneficiaireRepository.findByUtilisateur(utilisateur));
+    }
+
+    @PostMapping("/beneficiaires/ajouter")
+    public ResponseEntity<Map<String, String>> ajouterBeneficiaire(
+            @RequestBody Map<String, String> body,
+            Authentication authentication) {
+
+        Utilisateur utilisateur = utilisateurRepository
+                .findByEmail(authentication.getName()).orElseThrow();
+        String numeroCompte = body.get("numeroCompte");
+
+        if (!compteRepository.existsByNumeroCompte(numeroCompte)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message",
+                            "Le numéro de compte " + numeroCompte + " n'existe pas !"));
+        }
+        if (beneficiaireRepository.existsByUtilisateurAndNumeroCompte(
+                utilisateur, numeroCompte)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message",
+                            "Ce bénéficiaire est déjà dans votre liste !"));
+        }
+
+        beneficiaireRepository.save(Beneficiaire.builder()
+                .nom(body.get("nom"))
+                .numeroCompte(numeroCompte)
+                .telephone(body.get("telephone"))
+                .description(body.get("description"))
+                .utilisateur(utilisateur)
+                .build());
+
+        return ResponseEntity.ok(
+                Map.of("message", "Bénéficiaire ajouté avec succès !"));
+    }
+
+    @DeleteMapping("/beneficiaires/{id}")
+    public ResponseEntity<Map<String, String>> supprimerBeneficiaire(
+            @PathVariable Long id) {
+        beneficiaireRepository.deleteById(id);
+        return ResponseEntity.ok(Map.of("message", "Bénéficiaire supprimé !"));
+    }
+
+    @GetMapping("/devises")
+    public ResponseEntity<List<TauxDevise>> devises() {
+        return ResponseEntity.ok(tauxDeviseRepository.findAll());
+    }
+
+    @GetMapping("/notifications")
+    public ResponseEntity<List<Notification>> notifications(
+            Authentication authentication) {
+        Utilisateur utilisateur = utilisateurRepository
+                .findByEmail(authentication.getName()).orElseThrow();
+        List<Notification> notifications = notificationRepository
+                .findByUtilisateurOrderByDateCreationDesc(utilisateur);
+        notifications.forEach(n -> n.setLu(true));
+        notificationRepository.saveAll(notifications);
+        return ResponseEntity.ok(notifications);
     }
 
 }

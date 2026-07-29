@@ -1,8 +1,10 @@
 package com.bankagn.bankagn.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "beneficiaires")
@@ -28,6 +30,7 @@ public class Beneficiaire {
 
     private LocalDateTime dateCreation;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "utilisateur_id",
             nullable = false)

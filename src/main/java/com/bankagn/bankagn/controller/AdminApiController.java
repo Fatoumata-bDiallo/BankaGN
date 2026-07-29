@@ -25,6 +25,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import com.bankagn.bankagn.service.impl.PretService;
 import org.springframework.http.HttpStatus;
+import com.bankagn.bankagn.entity.TauxDevise;
+import com.bankagn.bankagn.repository.TauxDeviseRepository;
+import com.bankagn.bankagn.service.impl.CompteService;
 
 import java.util.List;
 import java.util.Map;
@@ -42,6 +45,8 @@ public class AdminApiController {
     private final PretRepository pretRepository;
     private final AlerteFraudeRepository alerteFraudeRepository;
     private final PretService pretService;
+    private final TauxDeviseRepository tauxDeviseRepository;
+    private final CompteService compteService;
 
     @GetMapping("/utilisateurs")
     public ResponseEntity<List<Utilisateur>> utilisateurs() {
@@ -233,5 +238,49 @@ public class AdminApiController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", e.getMessage()));
         }
+    }
+    @GetMapping("/devises")
+    public ResponseEntity<List<TauxDevise>> devises() {
+        return ResponseEntity.ok(tauxDeviseRepository.findAll());
+    }
+
+    @PutMapping("/devises/{id}")
+    public ResponseEntity<Map<String, String>> modifierDevise(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            Authentication authentication) {
+        try {
+            TauxDevise taux = tauxDeviseRepository.findById(id).orElseThrow();
+            BigDecimal ancien = taux.getTauxVersGNF();
+            BigDecimal nouveau = new BigDecimal(body.get("tauxVersGNF"));
+            taux.setTauxVersGNF(nouveau);
+            tauxDeviseRepository.save(taux);
+
+            journalAuditRepository.save(JournalAudit.builder()
+                    .action("Taux de change modifié")
+                    .details("Taux " + taux.getCode() + " modifié de "
+                            + ancien + " GNF → " + nouveau + " GNF")
+                    .effectuePar(authentication.getName())
+                    .typeAction(JournalAudit.TypeAction.SYSTEME)
+                    .build());
+
+            return ResponseEntity.ok(Map.of("message",
+                    "Taux " + taux.getCode() + " mis à jour : " + nouveau + " GNF !"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "Erreur lors de la mise à jour !"));
+        }
+    }
+
+    @PutMapping("/comptes/{id}/bloquer")
+    public ResponseEntity<Map<String, String>> bloquerCompte(@PathVariable Long id) {
+        compteService.bloquerCompte(id);
+        return ResponseEntity.ok(Map.of("message", "Compte bloqué !"));
+    }
+
+    @PutMapping("/comptes/{id}/debloquer")
+    public ResponseEntity<Map<String, String>> debloquerCompte(@PathVariable Long id) {
+        compteService.debloquerCompte(id);
+        return ResponseEntity.ok(Map.of("message", "Compte débloqué !"));
     }
 }
