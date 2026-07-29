@@ -1,5 +1,18 @@
 package com.bankagn.bankagn.controller;
-
+import com.bankagn.bankagn.dto.AlerteFraudeResponse;
+import com.bankagn.bankagn.dto.CompteAdminResponse;
+import com.bankagn.bankagn.dto.PretAdminResponse;
+import com.bankagn.bankagn.dto.RapportResponse;
+import com.bankagn.bankagn.entity.AlerteFraude;
+import com.bankagn.bankagn.entity.Compte;
+import com.bankagn.bankagn.entity.Pret;
+import com.bankagn.bankagn.entity.Transaction;
+import com.bankagn.bankagn.entity.Utilisateur;
+import com.bankagn.bankagn.repository.AlerteFraudeRepository;
+import com.bankagn.bankagn.repository.CompteRepository;
+import com.bankagn.bankagn.repository.PretRepository;
+import com.bankagn.bankagn.repository.TransactionRepository;
+import java.math.BigDecimal;
 import com.bankagn.bankagn.entity.JournalAudit;
 import com.bankagn.bankagn.entity.Notification;
 import com.bankagn.bankagn.entity.Utilisateur;
@@ -22,6 +35,10 @@ public class AdminApiController {
     private final UtilisateurRepository utilisateurRepository;
     private final NotificationRepository notificationRepository;
     private final JournalAuditRepository journalAuditRepository;
+    private final CompteRepository compteRepository;
+    private final TransactionRepository transactionRepository;
+    private final PretRepository pretRepository;
+    private final AlerteFraudeRepository alerteFraudeRepository;
 
     @GetMapping("/utilisateurs")
     public ResponseEntity<List<Utilisateur>> utilisateurs() {
@@ -81,5 +98,116 @@ public class AdminApiController {
 
         return ResponseEntity.ok(Map.of("message",
                 "Compte de " + u.getPrenom() + " " + u.getNom() + " bloqué !"));
+    }
+    @GetMapping("/comptes")
+    public ResponseEntity<List<CompteAdminResponse>> comptes() {
+        List<CompteAdminResponse> result = compteRepository.findAll().stream()
+                .map(c -> new CompteAdminResponse(
+                        c.getId(),
+                        c.getNumeroCompte(),
+                        c.getUtilisateur().getPrenom() + " " + c.getUtilisateur().getNom(),
+                        c.getType().name(),
+                        c.getSolde(),
+                        c.getStatut().name(),
+                        c.getDateCreation()))
+                .toList();
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/transactions")
+    public ResponseEntity<List<Transaction>> transactions() {
+        return ResponseEntity.ok(transactionRepository.findAll());
+    }
+
+    @GetMapping("/prets")
+    public ResponseEntity<List<PretAdminResponse>> prets() {
+        List<PretAdminResponse> result = pretRepository.findAll().stream()
+                .map(p -> new PretAdminResponse(
+                        p.getId(),
+                        p.getReference(),
+                        p.getUtilisateur().getPrenom() + " " + p.getUtilisateur().getNom(),
+                        p.getMontant(),
+                        p.getStatut().name(),
+                        p.getDateCreation()))
+                .toList();
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/fraudes")
+    public ResponseEntity<List<AlerteFraudeResponse>> fraudes() {
+        List<AlerteFraudeResponse> result = alerteFraudeRepository.findAll().stream()
+                .map(a -> new AlerteFraudeResponse(
+                        a.getId(),
+                        a.getTypeAlerte(),
+                        a.getUtilisateur().getPrenom() + " " + a.getUtilisateur().getNom(),
+                        a.getNiveau().name(),
+                        a.getStatut().name(),
+                        a.isResolu(),
+                        a.getDateAlerte()))
+                .toList();
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/audit")
+    public ResponseEntity<List<JournalAudit>> audit() {
+        return ResponseEntity.ok(journalAuditRepository.findAll());
+    }
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<RapportResponse> dashboard() {
+        return ResponseEntity.ok(construireRapport());
+    }
+
+    @GetMapping("/rapports")
+    public ResponseEntity<RapportResponse> rapports() {
+        return ResponseEntity.ok(construireRapport());
+    }
+
+    private RapportResponse construireRapport() {
+        long totalClients = utilisateurRepository.findAll().stream()
+                .filter(u -> u.getRole() == Utilisateur.Role.CLIENT)
+                .count();
+
+        long clientsActifs = utilisateurRepository.findAll().stream()
+                .filter(u -> u.getRole() == Utilisateur.Role.CLIENT
+                        && u.getStatut() == Utilisateur.Statut.ACTIF)
+                .count();
+
+        long enAttente = utilisateurRepository.findAll().stream()
+                .filter(u -> u.getRole() == Utilisateur.Role.CLIENT
+                        && u.getStatut() == Utilisateur.Statut.EN_ATTENTE)
+                .count();
+
+        long totalComptes = compteRepository.count();
+
+        BigDecimal totalSoldes = compteRepository.findAll().stream()
+                .map(Compte::getSolde)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        List<Transaction> transactions = transactionRepository.findAll();
+        long totalTransactions = transactions.size();
+
+        BigDecimal totalDepots = transactions.stream()
+                .filter(t -> t.getType() == Transaction.TypeTransaction.DEPOT)
+                .map(Transaction::getMontant)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalRetraits = transactions.stream()
+                .filter(t -> t.getType() == Transaction.TypeTransaction.RETRAIT)
+                .map(Transaction::getMontant)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalTransferts = transactions.stream()
+                .filter(t -> t.getType() == Transaction.TypeTransaction.TRANSFERT)
+                .map(Transaction::getMontant)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        long alertesNonResolues = alerteFraudeRepository
+                .countByStatut(AlerteFraude.StatutAlerteEnum.EN_COURS);
+
+        return new RapportResponse(
+                totalClients, clientsActifs, totalComptes, totalTransactions,
+                totalDepots, totalRetraits, totalTransferts, totalSoldes,
+                enAttente, alertesNonResolues);
     }
 }
