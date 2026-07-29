@@ -23,6 +23,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.bankagn.bankagn.service.impl.PretService;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 import java.util.Map;
@@ -39,6 +41,7 @@ public class AdminApiController {
     private final TransactionRepository transactionRepository;
     private final PretRepository pretRepository;
     private final AlerteFraudeRepository alerteFraudeRepository;
+    private final PretService pretService;
 
     @GetMapping("/utilisateurs")
     public ResponseEntity<List<Utilisateur>> utilisateurs() {
@@ -209,5 +212,26 @@ public class AdminApiController {
                 totalClients, clientsActifs, totalComptes, totalTransactions,
                 totalDepots, totalRetraits, totalTransferts, totalSoldes,
                 enAttente, alertesNonResolues);
+    }
+    @PutMapping("/prets/{id}/accepter")
+    public ResponseEntity<Map<String, String>> accepterPret(@PathVariable Long id) {
+        try {
+            pretService.accepterPret(id);
+            return ResponseEntity.ok(Map.of("message", "Prêt accepté !"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/prets/{id}/refuser")
+    public ResponseEntity<Map<String, String>> refuserPret(@PathVariable Long id) {
+        try {
+            pretService.refuserPret(id);
+            return ResponseEntity.ok(Map.of("message", "Prêt refusé !"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
+        }
     }
 }
