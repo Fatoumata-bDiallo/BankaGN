@@ -1,6 +1,15 @@
 package com.bankagn.bankagn.controller;
 import com.bankagn.bankagn.dto.DepotRetraitRequest;
 import com.bankagn.bankagn.dto.TransfertRequest;
+import com.bankagn.bankagn.entity.Carte;
+import com.bankagn.bankagn.entity.Pret;
+import com.bankagn.bankagn.service.impl.CarteService;
+import com.bankagn.bankagn.service.impl.PretService;
+import com.bankagn.bankagn.service.impl.ReleveService;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import java.math.BigDecimal;
 
 import com.bankagn.bankagn.dto.DashboardResponse;
 import com.bankagn.bankagn.entity.Compte;
@@ -29,6 +38,10 @@ public class ClientApiController {
     private final CompteService compteService;
     private final TransactionService transactionService;
     private final NotificationRepository notificationRepository;
+    private final PretService pretService;
+    private final CarteService carteService;
+    private final ReleveService releveService;
+    private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/dashboard")
     public ResponseEntity<DashboardResponse> dashboard(
@@ -138,6 +151,104 @@ public class ClientApiController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", e.getMessage()));
         }
+    }
+    @GetMapping("/transactions")
+    public ResponseEntity<List<Transaction>> transactions(
+            Authentication authentication) {
+        return ResponseEntity.ok(
+                transactionService.getTransactionsByEmail(authentication.getName()));
+    }
+
+    @GetMapping("/releve")
+    public ResponseEntity<byte[]> releve(Authentication authentication) {
+        try {
+            byte[] pdf = releveService.genererReleve(authentication.getName());
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData(
+                    "attachment", "releve-bankagn.pdf");
+            return ResponseEntity.ok().headers(headers).body(pdf);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/prets")
+    public ResponseEntity<List<Pret>> prets(Authentication authentication) {
+        return ResponseEntity.ok(
+                pretService.getPretsByEmail(authentication.getName()));
+    }
+
+    @PostMapping("/prets/demander")
+    public ResponseEntity<Map<String, String>> demanderPret(
+            @RequestBody Map<String, String> body,
+            Authentication authentication) {
+        try {
+            pretService.demanderPret(
+                    authentication.getName(),
+                    new BigDecimal(body.get("montant")),
+                    Integer.parseInt(body.get("dureeMois")),
+                    new BigDecimal("8"),
+                    body.get("motif"),
+                    null);
+            return ResponseEntity.ok(
+                    Map.of("message", "Demande de prêt envoyée avec succès !"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/cartes")
+    public ResponseEntity<List<Carte>> cartes(Authentication authentication) {
+        return ResponseEntity.ok(
+                carteService.getCartesByEmail(authentication.getName()));
+    }
+
+    @PostMapping("/cartes/demander")
+    public ResponseEntity<Map<String, String>> demanderCarte(
+            @RequestBody Map<String, String> body) {
+        try {
+            Long compteId = Long.parseLong(body.get("compteId"));
+            Carte.TypeCarte type = Carte.TypeCarte.valueOf(body.get("type"));
+            carteService.creerCarte(compteId, type);
+            return ResponseEntity.ok(
+                    Map.of("message", "Carte créée avec succès !"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/profil")
+    public ResponseEntity<Utilisateur> profil(Authentication authentication) {
+        Utilisateur utilisateur = utilisateurRepository
+                .findByEmail(authentication.getName()).orElseThrow();
+        return ResponseEntity.ok(utilisateur);
+    }
+
+    @PostMapping("/modifier-mdp")
+    public ResponseEntity<Map<String, Object>> modifierMotDePasse(
+            @RequestBody Map<String, String> body,
+            Authentication authentication) {
+
+        Utilisateur utilisateur = utilisateurRepository
+                .findByEmail(authentication.getName()).orElseThrow();
+
+        String ancien = body.get("ancienMotDePasse");
+        String nouveau = body.get("nouveauMotDePasse");
+
+        if (!passwordEncoder.matches(ancien, utilisateur.getMotDePasse())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("success", false,
+                            "message", "Ancien mot de passe incorrect !"));
+        }
+
+        utilisateur.setMotDePasse(passwordEncoder.encode(nouveau));
+        utilisateurRepository.save(utilisateur);
+
+        return ResponseEntity.ok(
+                Map.of("success", true, "message", "Mot de passe modifié !"));
     }
 
 }
