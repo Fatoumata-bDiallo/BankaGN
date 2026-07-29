@@ -283,4 +283,24 @@ public class AdminApiController {
         compteService.debloquerCompte(id);
         return ResponseEntity.ok(Map.of("message", "Compte débloqué !"));
     }
+    @PutMapping("/utilisateurs/{id}/debloquer")
+    public ResponseEntity<Map<String, String>> debloquerUtilisateur(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        Utilisateur u = utilisateurRepository.findById(id).orElseThrow();
+        u.setStatut(Utilisateur.Statut.ACTIF);
+        utilisateurRepository.save(u);
+
+        journalAuditRepository.save(JournalAudit.builder()
+                .action("Compte débloqué (API)")
+                .details("Compte de " + u.getPrenom() + " " + u.getNom() +
+                        " (" + u.getEmail() + ") débloqué")
+                .effectuePar(authentication.getName())
+                .typeAction(JournalAudit.TypeAction.UTILISATEUR)
+                .build());
+
+        return ResponseEntity.ok(Map.of("message",
+                "Compte de " + u.getPrenom() + " " + u.getNom() + " débloqué !"));
+    }
 }
