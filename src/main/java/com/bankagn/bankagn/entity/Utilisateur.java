@@ -57,6 +57,7 @@ public class Utilisateur {
     @JsonIgnore
     private String resetToken;
 
+    @JsonIgnore
     private LocalDateTime resetTokenExpiry;
 
     @JsonIgnore

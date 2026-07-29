@@ -323,5 +323,22 @@ public class ClientApiController {
         notificationRepository.saveAll(notifications);
         return ResponseEntity.ok(notifications);
     }
+    @PutMapping("/cartes/{id}/bloquer")
+    public ResponseEntity<Map<String, String>> bloquerCarte(@PathVariable Long id) {
+        carteService.bloquerCarte(id);
+        return ResponseEntity.ok(Map.of("message", "Carte bloquée !"));
+    }
+
+    @PutMapping("/cartes/{id}/debloquer")
+    public ResponseEntity<Map<String, String>> debloquerCarte(@PathVariable Long id) {
+        carteService.debloquerCarte(id);
+        return ResponseEntity.ok(Map.of("message", "Carte débloquée !"));
+    }
+
+    @DeleteMapping("/cartes/{id}")
+    public ResponseEntity<Map<String, String>> supprimerCarte(@PathVariable Long id) {
+        carteService.supprimerCarte(id);
+        return ResponseEntity.ok(Map.of("message", "Carte supprimée !"));
+    }
 
 }

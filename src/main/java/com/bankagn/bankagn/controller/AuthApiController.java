@@ -1,5 +1,6 @@
 package com.bankagn.bankagn.controller;
-
+import java.util.Map;
+import java.util.UUID;
 import com.bankagn.bankagn.dto.ApiResponse;
 import com.bankagn.bankagn.dto.AuthResponse;
 import com.bankagn.bankagn.dto.LoginRequest;
@@ -272,5 +273,71 @@ public class AuthApiController {
                     .type(Notification.TypeNotification.SYSTEME)
                     .lu(false).utilisateur(admin).build());
         }
+    }
+    // ---------- MOT DE PASSE OUBLIÉ ----------
+    @PostMapping("/mot-de-passe-oublie")
+    public ResponseEntity<ApiResponse<Void>> motDePasseOublie(
+            @RequestBody Map<String, String> body) {
+
+        String email = body.get("email");
+        Utilisateur utilisateur = utilisateurRepository
+                .findByEmail(email).orElse(null);
+
+        if (utilisateur == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Aucun compte trouvé avec cet email !"));
+        }
+        if (utilisateur.getStatut() != Utilisateur.Statut.ACTIF) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("Ce compte n'est pas actif !"));
+        }
+
+        String token = UUID.randomUUID().toString();
+        utilisateur.setResetToken(token);
+        utilisateur.setResetTokenExpiry(LocalDateTime.now().plusMinutes(30));
+        utilisateurRepository.save(utilisateur);
+
+        String lien = "https://bankagn-react.vercel.app/reinitialiser/" + token;
+
+        emailService.envoyerEmail(email,
+                "🔐 Réinitialisation de votre mot de passe BankaGN",
+                "Bonjour " + utilisateur.getPrenom() + ",\n\n"
+                        + "Cliquez sur ce lien pour créer un nouveau mot de passe :\n"
+                        + lien + "\n\nCe lien est valable 30 minutes.\n\n"
+                        + "Cordialement,\nL'équipe BankaGN");
+
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Un lien de réinitialisation a été envoyé à " + email + ".",
+                null));
+    }
+
+    @PostMapping("/reinitialiser")
+    public ResponseEntity<ApiResponse<Void>> reinitialiser(
+            @RequestBody Map<String, String> body) {
+
+        String token = body.get("token");
+        String nouveauMotDePasse = body.get("nouveauMotDePasse");
+
+        Utilisateur utilisateur = utilisateurRepository.findAll().stream()
+                .filter(u -> token.equals(u.getResetToken()))
+                .findFirst().orElse(null);
+
+        if (utilisateur == null || utilisateur.getResetTokenExpiry() == null
+                || utilisateur.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("Ce lien est invalide ou expiré !"));
+        }
+        if (nouveauMotDePasse == null || nouveauMotDePasse.length() < 6) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("Le mot de passe doit contenir au moins 6 caractères !"));
+        }
+
+        utilisateur.setMotDePasse(passwordEncoder.encode(nouveauMotDePasse));
+        utilisateur.setResetToken(null);
+        utilisateur.setResetTokenExpiry(null);
+        utilisateurRepository.save(utilisateur);
+
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Mot de passe réinitialisé avec succès !", null));
     }
 }
